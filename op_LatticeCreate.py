@@ -10,9 +10,15 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
     bl_region_type = "TOOLS"
     bl_options = {"REGISTER", "UNDO"}
 
-    orientation_types = (('GLOBAL', 'Global', '0'),
-                         ('LOCAL', 'Local', '1'),
-                         ('CURSOR', 'Cursor', '2'))
+    # presets =  (('2', '2x2x2', ''),
+    #             ('3', '3x3x3', ''),
+    #             ('4', '4x4x4', ''))
+
+    # preset: bpy.props.EnumProperty(name="Presets", items=presets, default='2')
+    
+    orientation_types = (('GLOBAL', 'Global', ''),
+                         ('LOCAL', 'Local', ''),
+                         ('CURSOR', 'Cursor', ''))
 
     orientation: bpy.props.EnumProperty(name="Orientation", items=orientation_types, default='LOCAL')
 
@@ -20,12 +26,34 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
     resolution_v: bpy.props.IntProperty(name="v", default=2, min=2)
     resolution_w: bpy.props.IntProperty(name="w", default=2, min=2)
 
-    interpolation_types = (('KEY_LINEAR', 'Linear', '0'),
-                           ('KEY_CARDINAL', 'Cardinal', '1'),
-                           ('KEY_CATMULL_ROM', 'Catmull-Rom', '2'),
-                           ('KEY_BSPLINE', 'BSpline', '3'))
+    interpolation_types = (('KEY_LINEAR', 'Linear', ''),
+                           ('KEY_CARDINAL', 'Cardinal', ''),
+                           ('KEY_CATMULL_ROM', 'Catmull-Rom', ''),
+                           ('KEY_BSPLINE', 'BSpline', ''))
 
     interpolation: bpy.props.EnumProperty(name="Interpolation", items=interpolation_types, default='KEY_LINEAR')
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        
+        col = layout.column()
+
+        
+        #row.prop(self, "preset", text="")
+
+        col.prop(self, "orientation", text="Orientation")
+        
+        col.separator()
+       
+        col.prop(self, "resolution_u", text="Resolution U")
+        col.prop(self, "resolution_v", text="V")
+        col.prop(self, "resolution_w", text="W")
+
+        col.separator()
+
+        col.prop(self, "interpolation", text="Interpolation")
+        
 
     @classmethod
     def poll(self, context):
@@ -88,7 +116,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
     def execute(self, context):
         # print("execute")
     
-        lattice = context.scene.objects[self.lattice_name]
+        lattice = bpy.context.scene.objects[self.lattice_name]
 
         self.update_lattice_from_bbox(context,
                                       lattice,

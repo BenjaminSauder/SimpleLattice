@@ -2,6 +2,9 @@ import bpy
 from mathutils import * 
 import collections
 
+allowed_object_types = set(['MESH', 'CURVE', 'SURFACE',
+                            'FONT', 'GPENCIL', 'LATTICE'])
+
 # https://blender.stackexchange.com/questions/32283/what-are-all-values-in-bound-box
 def bounds(local_coords, orientation=None):
     if orientation:
@@ -19,8 +22,6 @@ def bounds(local_coords, orientation=None):
         info.min = min(_list)
         info.distance = info.max - info.min
         push_axis.append(info)
-
-
 
     originals = dict(zip(['x', 'y', 'z'], push_axis))
 

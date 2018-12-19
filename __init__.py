@@ -23,10 +23,12 @@ bl_info = {
 }
 
 
-from . import operator
+from . import op_LatticeCreate
+from . import op_LatticeApply
 
 classes = [
-    operator.Op_LatticeCreateOperator,
+    op_LatticeCreate.Op_LatticeCreateOperator,
+    op_LatticeApply.Op_LatticeApplyOperator,
 ]
 
 

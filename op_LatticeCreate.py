@@ -3,16 +3,9 @@ from mathutils import *
 
 from . import util
 
-# https://bitbucket.org/kursad/blender_addons_easylattice/src/170d20e1a6c751c5e7216fbc530ddb944bc2f9f3/src/kk_QuickLatticeCreate.py?at=master&fileviewer=file-view-default
-
-
-allowed_object_types = set(['MESH', 'CURVE', 'SURFACE',
-                            'FONT', 'GPENCIL', 'LATTICE'])
-
-
 class Op_LatticeCreateOperator(bpy.types.Operator):
-    bl_idname = "object.op_latticecreate"
-    bl_label = "SimpleLattice"
+    bl_idname = "object.op_lattice_create"
+    bl_label = "Create Lattice"
     bl_space_type = "VIEW_3D"
     bl_region_type = "TOOLS"
     bl_options = {"REGISTER", "UNDO"}
@@ -39,19 +32,17 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         has_selection = len(context.selected_objects) != 0
         if has_selection:
             for obj in context.selected_objects:
-                if obj.type in allowed_object_types:
+                if obj.type in util.allowed_object_types:
                     return True
 
         return False
 
     def invoke(self, context, event):
-        print ("INVOKE")
-
         objects = []
         all_objecst_are_meshes = True
 
         for obj in context.selected_objects:
-            if obj.type in allowed_object_types:
+            if obj.type in util.allowed_object_types:
                 objects.append(obj)
 
                 if all_objecst_are_meshes and obj.type != 'MESH':
@@ -96,25 +87,13 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
     def execute(self, context):
         # print("execute")
-        # print(self.matrix)
-
-        #objects = list(map(lambda x: context.scene.objects[x], self.objects))
-        #map(lambda obj: obj.select_set(False), objects)
-
-        #lattice = self.createLattice(context)
+    
         lattice = context.scene.objects[self.lattice_name]
 
         self.update_lattice_from_bbox(context,
                                       lattice,
                                       self.coords.copy(),
                                       self.matrix.copy())
-
-        # self.cleanup(objects)
-        # if self.vertex_mode:
-        #    self.group_mapping = self.set_vertex_group(
-        #        objects, self.vert_mapping)
-
-        #self.add_ffd_modifier(objects, lattice, self.group_mapping)
 
         lattice.select_set(True)
         context.view_layer.objects.active = lattice

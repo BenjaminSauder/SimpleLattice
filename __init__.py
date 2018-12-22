@@ -32,13 +32,36 @@ classes = [
 ]
 
 
+menus = [
+    bpy.types.VIEW3D_MT_edit_mesh,
+    bpy.types.VIEW3D_MT_object_specials,
+]
+
+def context_menu(self, context):
+    layout = self.layout
+    
+    show_apply_op = op_LatticeApply.Op_LatticeApplyOperator.poll(context)
+    if show_apply_op:
+        layout.operator("object.op_lattice_apply")
+
+    show_create_op = op_LatticeCreate.Op_LatticeCreateOperator.poll(context)
+    if show_create_op and not show_apply_op:
+        layout.operator("object.op_lattice_create")
+    
+    if show_apply_op or show_create_op:
+        layout.separator()
+
+
 def register():
-    print("register")
+    for menu in menus:
+        menu.prepend(context_menu)
+
     for c in classes:
         bpy.utils.register_class(c)
 
 def unregister():
-    print("unregister")
+    for menu in menus:
+        menu.remove(context_menu)
 
     for c in classes:
         bpy.utils.unregister_class(c)

@@ -55,14 +55,18 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
         col.separator()
 
-        col.prop(self, "scale", text="Scale")
-
-        col.separator()
-
         col.prop(self, "interpolation", text="Interpolation")
+       
+        col.separator()
+        
+        col.prop(self, "scale", text="Scale")
 
     @classmethod
     def poll(self, context):
+        if (context.active_object.type in util.allowed_object_types and
+           context.active_object.mode == 'EDIT'):
+                return True 
+
         has_selection = len(context.selected_objects) != 0
         if has_selection:
             for obj in context.selected_objects:
@@ -82,30 +86,37 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
                 if all_objecst_are_meshes and obj.type != 'MESH':
                     all_objecst_are_meshes = False
 
+        # for the shitty case when the active object is in edit mode,
+        # but is not selected..
+        if len(objects) == 0:
+            objects.append(context.active_object)
+
         self.vertex_mode = all_objecst_are_meshes and objects[0].mode == 'EDIT'
 
-        if len(objects) > 0:
-            lattice = self.createLattice(context)
-            self.lattice = lattice
-            self.lattice_name = lattice.name
-
+        if len(objects) > 0:    
             self.mapping = None
             self.group_mapping = None
             self.vert_mapping = None
-            self.objects = list(map(lambda x: x.name, objects))
+            self.object_names = list(map(lambda x: x.name, objects))
 
             self.cleanup(objects)
 
             if self.vertex_mode:
-                # bpy.ops.object.editmode_toggle()
-
                 self.coords, self.vert_mapping = self.get_coords_from_verts(
                     objects)
-                self.group_mapping = self.set_vertex_group(
-                    objects, self.vert_mapping)
+                
+                if len(self.coords) == 0:
+                    return {'CANCELLED'} 
+
+                self.group_mapping = self.set_vertex_group(objects,
+                                                           self.vert_mapping)
 
             else:
                 self.coords = self.get_coords_from_objects(objects)
+
+            lattice = self.createLattice(context)
+            self.lattice = lattice
+            self.lattice_name = lattice.name
 
             self.matrix = context.active_object.matrix_world.copy()
             self.update_lattice_from_bbox(
@@ -113,39 +124,51 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
             self.add_ffd_modifier(objects, lattice, self.group_mapping)
 
-            lattice.select_set(True)
-            context.view_layer.objects.active = lattice
-
+            self.set_selection(context, lattice, objects)
+          
             return {'FINISHED'}
         else:
             return {'CANCELLED'}
 
+    # this whole invole/execute thing is a bit confusing..
     def execute(self, context):
+        if not hasattr(self, "lattice"):
+            result = self.invoke(context, None)
+            if 'CANCELLED' in result:
+                return result
+
+        objects = map(lambda name: bpy.context.scene.objects[name],
+                          self.object_names)
 
         # this is a bit weird, behaviour is different between
-        # object and edit mode, as the undo result make it so
+        # object and edit mode, as the undo result makes it so
         # that in edit mode objects persist, and in object mode not
-        if self.vertex_mode:
+        if self.lattice_name in bpy.context.scene.objects:
             lattice = bpy.context.scene.objects[self.lattice_name]
         else:
             lattice = self.createLattice(context)
-
-            objects = map(lambda name: bpy.context.scene.objects[name],
-                          self.objects)
+            
             self.add_ffd_modifier(objects, lattice, self.group_mapping)
+            
 
         self.update_lattice_from_bbox(context,
                                       lattice,
                                       self.coords,
                                       self.matrix)
 
-        lattice.select_set(True)
-        context.view_layer.objects.active = lattice
+        self.set_selection(context, lattice, objects)
 
         if lattice.mode == "EDIT":
             bpy.ops.object.editmode_toggle()
 
         return {'FINISHED'}
+
+    def set_selection(self, context, lattice, other):
+        for obj in other:
+            obj.select_set(False)
+
+        lattice.select_set(True)
+        context.view_layer.objects.active = lattice
 
     def get_coords_from_verts(self, objects):
         worldspace_verts = []
@@ -168,9 +191,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
     def get_coords_from_objects(self, objects):
         bbox_world_coords = []
-        for obj in objects:
-            obj.select_set(False)
-
+        for obj in objects:           
             coords = obj.bound_box[:]
             coords = [(obj.matrix_world @ Vector(p[:])).to_tuple()
                       for p in coords]

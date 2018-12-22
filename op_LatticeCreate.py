@@ -26,6 +26,8 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
     resolution_v: bpy.props.IntProperty(name="v", default=2, min=2)
     resolution_w: bpy.props.IntProperty(name="w", default=2, min=2)
 
+    scale: bpy.props.FloatProperty(name="Scale", default=1.0, min=0.001, soft_min=0.1, soft_max=2.0)
+
     interpolation_types = (('KEY_LINEAR', 'Linear', ''),
                            ('KEY_CARDINAL', 'Cardinal', ''),
                            ('KEY_CATMULL_ROM', 'Catmull-Rom', ''),
@@ -39,9 +41,6 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         
         col = layout.column()
 
-        
-        #row.prop(self, "preset", text="")
-
         col.prop(self, "orientation", text="Orientation")
         
         col.separator()
@@ -51,7 +50,11 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         col.prop(self, "resolution_w", text="W")
 
         col.separator()
+        
+        col.prop(self, "scale", text="Scale")
 
+        col.separator()
+        
         col.prop(self, "interpolation", text="Interpolation")
         
 
@@ -91,7 +94,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             self.cleanup(objects)
 
             if self.vertex_mode:
-                bpy.ops.object.editmode_toggle()
+                #bpy.ops.object.editmode_toggle()
 
                 self.coords, self.vert_mapping = self.get_coords_from_verts(
                     objects)
@@ -109,6 +112,8 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
             lattice.select_set(True)
             context.view_layer.objects.active = lattice
+
+            #context.window_manager.invoke_props_dialog(self)
             return {'FINISHED'}
         else:
             return {'CANCELLED'}
@@ -116,7 +121,12 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
     def execute(self, context):
         # print("execute")
     
-        lattice = bpy.context.scene.objects[self.lattice_name]
+        #this is a bit weird, behaviour is different between 
+        #object and edit mod    e..
+        if self.vertex_mode:
+            lattice = bpy.context.scene.objects[self.lattice_name]
+        else:
+            lattice = self.createLattice(context)
 
         self.update_lattice_from_bbox(context,
                                       lattice,
@@ -126,8 +136,8 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         lattice.select_set(True)
         context.view_layer.objects.active = lattice
 
-        if lattice.mode == "EDIT":
-            bpy.ops.object.editmode_toggle()
+        #if lattice.mode == "EDIT":
+        #    bpy.ops.object.editmode_toggle()
 
         return {'FINISHED'}
 
@@ -207,7 +217,9 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
         lattice.location = location
         lattice.rotation_euler = rotation.to_euler()
-        lattice.scale = scale.to_tuple()
+        lattice.scale = Vector((scale.x * self.scale,
+                                scale.y * self.scale, 
+                                scale.z * self.scale))  
 
     def add_ffd_modifier(self, objects, lattice, group_mapping):
         for obj in objects:
@@ -245,6 +257,8 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
     def set_vertex_group(self, objects, vert_mapping):
         group_mapping = {}
         for obj in objects:
+
+            mode = obj.mode 
             if obj.mode == "EDIT":
                 bpy.ops.object.editmode_toggle()
 
@@ -258,5 +272,9 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
             group.add(vert_mapping[obj.name], 1.0, "REPLACE")
             group_mapping[obj.name] = group.name
+
+            if mode != obj.mode:
+                bpy.ops.object.editmode_toggle()
+
 
         return group_mapping

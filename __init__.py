@@ -15,11 +15,12 @@ import bpy
 bl_info = {
     "name" : "SimpleLattice",
     "author" : "benjamin.sauder",
-    "description" : "",
+    "location": "View3D",
+    "description" : "A tool to simplify the workflow with lattice objects.",
     "blender" : (2, 80, 0),
-    "location" : "",
+    "wiki_url" : "https://github.com/BenjaminSauder/SimpleLattice",
     "warning" : "",
-    "category" : "Generic"
+    "category" : "Object",
 }
 
 

@@ -6,6 +6,7 @@ from . import util
 class Op_LatticeApplyOperator(bpy.types.Operator):
     bl_idname = "object.op_lattice_apply"
     bl_label = "Apply Lattice"
+    bl_description = "Applies the lattice to all objects whose FFD modifiers are targeting it"
     bl_space_type = "VIEW_3D"
     bl_region_type = "TOOLS"
     bl_options = {"REGISTER", "UNDO"}

@@ -7,6 +7,7 @@ from . import util
 class Op_LatticeCreateOperator(bpy.types.Operator):
     bl_idname = "object.op_lattice_create"
     bl_label = "Create Lattice"
+    bl_description = "Creates and binds a lattice object to the current selection."
     bl_space_type = "VIEW_3D"
     bl_region_type = "TOOLS"
     bl_options = {"REGISTER", "UNDO"}
@@ -58,7 +59,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         col.prop(self, "interpolation", text="Interpolation")
        
         col.separator()
-        
+
         col.prop(self, "scale", text="Scale")
 
     @classmethod

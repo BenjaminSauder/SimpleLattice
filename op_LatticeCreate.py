@@ -3,6 +3,7 @@ from mathutils import *
 
 from . import util
 
+
 class Op_LatticeCreateOperator(bpy.types.Operator):
     bl_idname = "object.op_lattice_create"
     bl_label = "Create Lattice"
@@ -15,48 +16,50 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
     #             ('4', '4x4x4', ''))
 
     # preset: bpy.props.EnumProperty(name="Presets", items=presets, default='2')
-    
+
     orientation_types = (('GLOBAL', 'Global', ''),
                          ('LOCAL', 'Local', ''),
                          ('CURSOR', 'Cursor', ''))
 
-    orientation: bpy.props.EnumProperty(name="Orientation", items=orientation_types, default='LOCAL')
+    orientation: bpy.props.EnumProperty(
+        name="Orientation", items=orientation_types, default='LOCAL')
 
     resolution_u: bpy.props.IntProperty(name="u", default=2, min=2)
     resolution_v: bpy.props.IntProperty(name="v", default=2, min=2)
     resolution_w: bpy.props.IntProperty(name="w", default=2, min=2)
 
-    scale: bpy.props.FloatProperty(name="Scale", default=1.0, min=0.001, soft_min=0.1, soft_max=2.0)
+    scale: bpy.props.FloatProperty(
+        name="Scale", default=1.0, min=0.001, soft_min=0.1, soft_max=2.0)
 
     interpolation_types = (('KEY_LINEAR', 'Linear', ''),
                            ('KEY_CARDINAL', 'Cardinal', ''),
                            ('KEY_CATMULL_ROM', 'Catmull-Rom', ''),
                            ('KEY_BSPLINE', 'BSpline', ''))
 
-    interpolation: bpy.props.EnumProperty(name="Interpolation", items=interpolation_types, default='KEY_LINEAR')
+    interpolation: bpy.props.EnumProperty(
+        name="Interpolation", items=interpolation_types, default='KEY_LINEAR')
 
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = True
-        
+
         col = layout.column()
 
         col.prop(self, "orientation", text="Orientation")
-        
+
         col.separator()
-       
+
         col.prop(self, "resolution_u", text="Resolution U")
         col.prop(self, "resolution_v", text="V")
         col.prop(self, "resolution_w", text="W")
 
         col.separator()
-        
+
         col.prop(self, "scale", text="Scale")
 
         col.separator()
-        
+
         col.prop(self, "interpolation", text="Interpolation")
-        
 
     @classmethod
     def poll(self, context):
@@ -94,7 +97,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             self.cleanup(objects)
 
             if self.vertex_mode:
-                #bpy.ops.object.editmode_toggle()
+                # bpy.ops.object.editmode_toggle()
 
                 self.coords, self.vert_mapping = self.get_coords_from_verts(
                     objects)
@@ -113,20 +116,23 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             lattice.select_set(True)
             context.view_layer.objects.active = lattice
 
-            #context.window_manager.invoke_props_dialog(self)
             return {'FINISHED'}
         else:
             return {'CANCELLED'}
 
     def execute(self, context):
-        # print("execute")
-    
-        #this is a bit weird, behaviour is different between 
-        #object and edit mod    e..
+
+        # this is a bit weird, behaviour is different between
+        # object and edit mode, as the undo result make it so 
+        # that in edit mode objects persist, and in object mode not
         if self.vertex_mode:
             lattice = bpy.context.scene.objects[self.lattice_name]
         else:
             lattice = self.createLattice(context)
+
+            objects = map(lambda name: bpy.context.scene.objects[name],
+                          self.objects)
+            self.add_ffd_modifier(objects, lattice, self.group_mapping)
 
         self.update_lattice_from_bbox(context,
                                       lattice,
@@ -136,7 +142,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         lattice.select_set(True)
         context.view_layer.objects.active = lattice
 
-        #if lattice.mode == "EDIT":
+        # if lattice.mode == "EDIT":
         #    bpy.ops.object.editmode_toggle()
 
         return {'FINISHED'}
@@ -166,7 +172,8 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             obj.select_set(False)
 
             coords = obj.bound_box[:]
-            coords = [(obj.matrix_world @ Vector(p[:])).to_tuple() for p in coords]
+            coords = [(obj.matrix_world @ Vector(p[:])).to_tuple()
+                      for p in coords]
             bbox_world_coords.extend(coords)
 
         return bbox_world_coords
@@ -218,8 +225,8 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         lattice.location = location
         lattice.rotation_euler = rotation.to_euler()
         lattice.scale = Vector((scale.x * self.scale,
-                                scale.y * self.scale, 
-                                scale.z * self.scale))  
+                                scale.y * self.scale,
+                                scale.z * self.scale))
 
     def add_ffd_modifier(self, objects, lattice, group_mapping):
         for obj in objects:
@@ -258,7 +265,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         group_mapping = {}
         for obj in objects:
 
-            mode = obj.mode 
+            mode = obj.mode
             if obj.mode == "EDIT":
                 bpy.ops.object.editmode_toggle()
 
@@ -275,6 +282,5 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
             if mode != obj.mode:
                 bpy.ops.object.editmode_toggle()
-
 
         return group_mapping

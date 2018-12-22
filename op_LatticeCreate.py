@@ -107,7 +107,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             else:
                 self.coords = self.get_coords_from_objects(objects)
 
-            self.matrix = context.active_object.matrix_world
+            self.matrix = context.active_object.matrix_world.copy()
             self.update_lattice_from_bbox(
                 context, lattice, self.coords, self.matrix)
 
@@ -123,7 +123,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
     def execute(self, context):
 
         # this is a bit weird, behaviour is different between
-        # object and edit mode, as the undo result make it so 
+        # object and edit mode, as the undo result make it so
         # that in edit mode objects persist, and in object mode not
         if self.vertex_mode:
             lattice = bpy.context.scene.objects[self.lattice_name]
@@ -136,14 +136,14 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
         self.update_lattice_from_bbox(context,
                                       lattice,
-                                      self.coords.copy(),
-                                      self.matrix.copy())
+                                      self.coords,
+                                      self.matrix)
 
         lattice.select_set(True)
         context.view_layer.objects.active = lattice
 
-        # if lattice.mode == "EDIT":
-        #    bpy.ops.object.editmode_toggle()
+        if lattice.mode == "EDIT":
+            bpy.ops.object.editmode_toggle()
 
         return {'FINISHED'}
 

@@ -13,6 +13,9 @@ class Op_LatticeApplyOperator(bpy.types.Operator):
     def execute(self, context):
         lattice = context.active_object
 
+        if lattice.mode == "EDIT":
+            bpy.ops.object.editmode_toggle()
+
         vertex_groups = []
 
         for obj in context.scene.objects:
@@ -33,7 +36,7 @@ class Op_LatticeApplyOperator(bpy.types.Operator):
 
     @classmethod
     def poll(self, context):
-        return (context.mode == "OBJECT" and
+        return (len(context.selected_objects) == 1 and
                 context.active_object and
                 context.active_object.type == 'LATTICE' and
                 context.active_object.select_get())
@@ -54,6 +57,10 @@ class Op_LatticeApplyOperator(bpy.types.Operator):
             vertex_group = modifier.vertex_group
 
         if modifier.show_viewport:
+
+            if modifier.id_data.mode != 'OBJECT':
+                bpy.ops.object.editmode_toggle()
+
             bpy.ops.object.modifier_apply(
                 apply_as='DATA', modifier=modifier.name)
         else:

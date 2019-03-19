@@ -12,12 +12,14 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
     bl_region_type = "TOOLS"
     bl_options = {"REGISTER", "UNDO"}
 
+
+    init = False
+
     # presets =  (('2', '2x2x2', ''),
     #             ('3', '3x3x3', ''),
     #             ('4', '4x4x4', ''))
 
     # preset: bpy.props.EnumProperty(name="Presets", items=presets, default='2')
-
     orientation_types = (('GLOBAL', 'Global', ''),
                          ('LOCAL', 'Local', ''),
                          ('CURSOR', 'Cursor', ''))
@@ -57,7 +59,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         col.separator()
 
         col.prop(self, "interpolation", text="Interpolation")
-       
+
         col.separator()
 
         col.prop(self, "scale", text="Scale")
@@ -65,8 +67,8 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         if (context.active_object.type in util.allowed_object_types and
-           context.active_object.mode == 'EDIT'):
-                return True 
+                context.active_object.mode == 'EDIT'):
+            return True
 
         has_selection = len(context.selected_objects) != 0
         if has_selection:
@@ -77,6 +79,16 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         return False
 
     def invoke(self, context, event):
+        if not Op_LatticeCreateOperator.init:
+            prefs = bpy.context.preferences.addons[__package__].preferences
+
+            self.interpolation = prefs.default_interpolation
+            self.resolution_u = prefs.default_resolution_u
+            self.resolution_v = prefs.default_resolution_v
+            self.resolution_w = prefs.default_resolution_w
+
+            Op_LatticeCreateOperator.init = True
+
         objects = []
         all_objecst_are_meshes = True
 
@@ -94,7 +106,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
         self.vertex_mode = all_objecst_are_meshes and objects[0].mode == 'EDIT'
 
-        if len(objects) > 0:    
+        if len(objects) > 0:
             self.mapping = None
             self.group_mapping = None
             self.vert_mapping = None
@@ -105,9 +117,9 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             if self.vertex_mode:
                 self.coords, self.vert_mapping = self.get_coords_from_verts(
                     objects)
-                
+
                 if len(self.coords) == 0:
-                    return {'CANCELLED'} 
+                    return {'CANCELLED'}
 
                 self.group_mapping = self.set_vertex_group(objects,
                                                            self.vert_mapping)
@@ -126,7 +138,8 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             self.add_ffd_modifier(objects, lattice, self.group_mapping)
 
             self.set_selection(context, lattice, objects)
-          
+
+            context.scene.update()
             return {'FINISHED'}
         else:
             return {'CANCELLED'}
@@ -139,7 +152,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
                 return result
 
         objects = map(lambda name: bpy.context.scene.objects[name],
-                          self.object_names)
+                      self.object_names)
 
         # this is a bit weird, behaviour is different between
         # object and edit mode, as the undo result makes it so
@@ -148,9 +161,8 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             lattice = bpy.context.scene.objects[self.lattice_name]
         else:
             lattice = self.createLattice(context)
-            
+
             self.add_ffd_modifier(objects, lattice, self.group_mapping)
-            
 
         self.update_lattice_from_bbox(context,
                                       lattice,
@@ -162,6 +174,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         if lattice.mode == "EDIT":
             bpy.ops.object.editmode_toggle()
 
+        context.scene.update()
         return {'FINISHED'}
 
     def set_selection(self, context, lattice, other):
@@ -192,7 +205,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
     def get_coords_from_objects(self, objects):
         bbox_world_coords = []
-        for obj in objects:           
+        for obj in objects:
             coords = obj.bound_box[:]
             coords = [(obj.matrix_world @ Vector(p[:])).to_tuple()
                       for p in coords]
@@ -211,7 +224,16 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             bbox = util.bounds(bbox_world_coords, rot.inverted())
 
         elif self.orientation == 'CURSOR':
-            rot = context.scene.cursor_rotation.to_matrix().to_4x4()
+            mode = context.scene.cursor.rotation_mode
+            if mode == "QUATERNION":
+                rot = context.scene.cursor.rotation_quaternion.to_matrix().to_4x4()
+            elif mode == "AXIS_ANGLE":
+                axis_angle = context.scene.cursor.rotation_axis_angle
+                rot = Quaternion(axis_angle[1:], axis_angle[0])
+                rot = rot.to_matrix().to_4x4()
+            else:
+                rot = context.scene.cursor.rotation_euler.to_matrix().to_4x4()
+
             bbox = util.bounds(bbox_world_coords, rot.inverted())
 
         bound_min = Vector((bbox.x.min, bbox.y.min, bbox.z.min))
@@ -258,6 +280,8 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
                 vertex_group_name = group_mapping[obj.name]
                 ffd.name = vertex_group_name
                 ffd.vertex_group = vertex_group_name
+
+            obj.update_tag()
 
     def cleanup(self, objects):
         for obj in objects:

@@ -216,33 +216,32 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
     def update_lattice_from_bbox(self, context, lattice, bbox_world_coords, matrix_world):
 
         if self.orientation == 'GLOBAL':
-            rot = Matrix.Identity(4)
+            rotation = Matrix.Identity(4)
             bbox = util.bounds(bbox_world_coords)
 
         elif self.orientation == 'LOCAL':
-            rot = matrix_world.to_quaternion().to_matrix().to_4x4()
-            bbox = util.bounds(bbox_world_coords, rot.inverted())
+            rotation = matrix_world.to_quaternion().to_matrix().to_4x4()
+            bbox = util.bounds(bbox_world_coords, rotation.inverted())
 
         elif self.orientation == 'CURSOR':
             mode = context.scene.cursor.rotation_mode
             if mode == "QUATERNION":
-                rot = context.scene.cursor.rotation_quaternion.to_matrix().to_4x4()
+                rotation = context.scene.cursor.rotation_quaternion.to_matrix().to_4x4()
             elif mode == "AXIS_ANGLE":
                 axis_angle = context.scene.cursor.rotation_axis_angle
-                rot = Quaternion(axis_angle[1:], axis_angle[0])
-                rot = rot.to_matrix().to_4x4()
+                rotation = Quaternion(axis_angle[1:], axis_angle[0])
+                rotation = rotation.to_matrix().to_4x4()
             else:
-                rot = context.scene.cursor.rotation_euler.to_matrix().to_4x4()
+                rotation = context.scene.cursor.rotation_euler.to_matrix().to_4x4()
 
-            bbox = util.bounds(bbox_world_coords, rot.inverted())
+            bbox = util.bounds(bbox_world_coords, rotation.inverted())
 
         bound_min = Vector((bbox.x.min, bbox.y.min, bbox.z.min))
         bound_max = Vector((bbox.x.max, bbox.y.max, bbox.z.max))
         offset = (bound_min + bound_max) * 0.5
 
         # finally gather position/rotation/scaling for the lattice
-        location = rot @ offset
-        rotation = rot
+        location = rotation @ offset        
         scale = Vector((abs(bound_max.x - bound_min.x),
                         abs(bound_max.y - bound_min.y),
                         abs(bound_max.z - bound_min.z)))

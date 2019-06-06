@@ -139,7 +139,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
             self.set_selection(context, lattice, objects)
 
-            context.scene.update()
+            context.view_layer.update()
             return {'FINISHED'}
         else:
             return {'CANCELLED'}
@@ -174,7 +174,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         if lattice.mode == "EDIT":
             bpy.ops.object.editmode_toggle()
 
-        context.scene.update()
+        context.view_layer.update()
         return {'FINISHED'}
 
     def set_selection(self, context, lattice, other):
@@ -233,7 +233,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
                 rotation = rotation.to_matrix().to_4x4()
             else:
                 rotation = context.scene.cursor.rotation_euler.to_matrix().to_4x4()
-
+    
             bbox = util.bounds(bbox_world_coords, rotation.inverted())
 
         bound_min = Vector((bbox.x.min, bbox.y.min, bbox.z.min))

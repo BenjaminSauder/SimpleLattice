@@ -32,7 +32,7 @@ class Op_LatticeApplyOperator(bpy.types.Operator):
                 self.kill_vertex_groups(obj, vertex_groups)
 
         bpy.data.objects.remove(lattice, do_unlink=True)
-        context.scene.update()
+        context.view_layer.update()
         return {'FINISHED'}
 
     @classmethod

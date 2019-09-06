@@ -6,3 +6,5 @@ Basically just select objects/vertices and run>SimpleLattice. This will add a la
 You can choose the alignment of the lattice, the number of control points and the interplation type.
 
 It also does auto cleanup in the back, but only on modifiers & vertex groups with "SimpleLattice" in the name.
+
+# THIS ADDON IS HIGHLY WORK IN PROGRESS

@@ -3,6 +3,15 @@ from mathutils import *
 
 from . import util
 
+# Recursivly transverse layer_collection for a particular name
+def recurLayerCollection(layerColl, collName):
+    found = None
+    if (layerColl.name == collName):
+        return layerColl
+    for layer in layerColl.children:
+        found = recurLayerCollection(layer, collName)
+        if found:
+            return found
 
 class Op_LatticeCreateOperator(bpy.types.Operator):
     bl_idname = "object.op_lattice_create"
@@ -27,6 +36,14 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
     orientation: bpy.props.EnumProperty(
         name="Orientation", items=orientation_types, default='LOCAL')
 
+    #on_top: bpy.props.BoolProperty (name="On Top", default = False, description="Move modifier on top of stack")
+    modifier_position: bpy.props.EnumProperty (
+        name="Modifier", 
+        items=[('on_top','On Top',''),
+                ('bottom','Bottom','')], 
+        default="bottom", 
+        description="Move modifier on top or bottom in the stack")
+
     resolution_u: bpy.props.IntProperty(name="u", default=2, min=2)
     resolution_v: bpy.props.IntProperty(name="v", default=2, min=2)
     resolution_w: bpy.props.IntProperty(name="w", default=2, min=2)
@@ -46,10 +63,20 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         layout = self.layout
         layout.use_property_split = True
 
+        row = layout.row()
+        row.prop(self, "orientation", text="Orientation", expand=True)
+        
         col = layout.column()
-
-        col.prop(self, "orientation", text="Orientation")
-
+        col.separator()
+        
+        row = layout.row()
+        row.prop(self, "modifier_position", expand=True)
+        
+        col = layout.column()
+#        col.separator()
+        
+#        col.prop(self, "on_top")
+        
         col.separator()
 
         col.prop(self, "resolution_u", text="Resolution U")
@@ -78,21 +105,25 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
         return False
 
-    def invoke(self, context, event):
-        if not Op_LatticeCreateOperator.init:
-            prefs = bpy.context.preferences.addons[__package__].preferences
+    def execute(self, context):
+        # if add lattice in Edit mode, 
+        # preventing undo objects data if settings in "Adjust last action" panel was changed
+        self.for_edit_mode(context) 
+    
+#        if not Op_LatticeCreateOperator.init:
+#            prefs = bpy.context.preferences.addons[__package__].preferences
 
-            self.interpolation = prefs.default_interpolation
-            self.resolution_u = prefs.default_resolution_u
-            self.resolution_v = prefs.default_resolution_v
-            self.resolution_w = prefs.default_resolution_w
+#            self.interpolation = prefs.default_interpolation
+#            self.resolution_u = prefs.default_resolution_u
+#            self.resolution_v = prefs.default_resolution_v
+#            self.resolution_w = prefs.default_resolution_w
 
-            Op_LatticeCreateOperator.init = True
+#            Op_LatticeCreateOperator.init = True
 
         objects = []
         all_objecst_are_meshes = True
-
-        for obj in context.selected_objects:
+        
+        for obj in context.selected_objects:            
             if obj.type in util.allowed_object_types:
                 objects.append(obj)
 
@@ -107,89 +138,60 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         self.vertex_mode = all_objecst_are_meshes and objects[0].mode == 'EDIT'
 
         if len(objects) > 0:
-            self.mapping = None
+            #self.mapping = None
             self.group_mapping = None
             self.vert_mapping = None
-            self.object_names = list(map(lambda x: x.name, objects))
+            #self.object_names = list(map(lambda x: x.name, objects))
 
             self.cleanup(objects)
 
             if self.vertex_mode:
-                self.coords, self.vert_mapping = self.get_coords_from_verts(
-                    objects)
+                self.coords, self.vert_mapping = self.get_coords_from_verts(objects)
 
                 if len(self.coords) == 0:
+                    bpy.ops.object.mode_set(mode='EDIT')
+                    self.report({'INFO'}, 'Need to be at least 1 vertex selected')
                     return {'CANCELLED'}
 
-                self.group_mapping = self.set_vertex_group(objects,
-                                                           self.vert_mapping)
+                self.group_mapping = self.set_vertex_group(objects, self.vert_mapping)
 
             else:
                 self.coords = self.get_coords_from_objects(objects)
 
             lattice = self.createLattice(context)
-            self.lattice = lattice
-            self.lattice_name = lattice.name
+            #self.lattice = lattice
+            #self.lattice_name = lattice.name
 
             self.matrix = context.active_object.matrix_world.copy()
-            self.update_lattice_from_bbox(
-                context, lattice, self.coords, self.matrix)
-
+            
+            self.update_lattice_from_bbox(context, lattice, self.coords, self.matrix)
+            
             self.add_ffd_modifier(objects, lattice, self.group_mapping)
 
             self.set_selection(context, lattice, objects)
 
             context.view_layer.update()
+            
             return {'FINISHED'}
         else:
             return {'CANCELLED'}
 
-    # this whole invole/execute thing is a bit confusing..
-    def execute(self, context):
-        if not hasattr(self, "lattice"):
-            result = self.invoke(context, None)
-            if 'CANCELLED' in result:
-                return result
-
-        objects = map(lambda name: bpy.context.scene.objects[name],
-                      self.object_names)
-
-        # this is a bit weird, behaviour is different between
-        # object and edit mode, as the undo result makes it so
-        # that in edit mode objects persist, and in object mode not
-        if self.lattice_name in bpy.context.scene.objects:
-            lattice = bpy.context.scene.objects[self.lattice_name]
-        else:
-            lattice = self.createLattice(context)
-
-            self.add_ffd_modifier(objects, lattice, self.group_mapping)
-
-        self.update_lattice_from_bbox(context,
-                                      lattice,
-                                      self.coords,
-                                      self.matrix)
-
-        self.set_selection(context, lattice, objects)
-
-        if lattice.mode == "EDIT":
-            bpy.ops.object.editmode_toggle()
-
-        context.view_layer.update()
-        return {'FINISHED'}
 
     def set_selection(self, context, lattice, other):
-        for obj in other:
-            obj.select_set(False)
+        bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.select_all(action='DESELECT')
 
         lattice.select_set(True)
         context.view_layer.objects.active = lattice
+        bpy.ops.object.editmode_toggle()
 
     def get_coords_from_verts(self, objects):
         worldspace_verts = []
         vert_mapping = {}
 
         for obj in objects:
-            obj.select_set(False)
+            bpy.ops.object.editmode_toggle()          
+            #obj.select_set(False)
 
             vert_indices = []
             vertices = obj.data.vertices
@@ -213,15 +215,16 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
         return bbox_world_coords
 
-    def update_lattice_from_bbox(self, context, lattice, bbox_world_coords, matrix_world):
-
+    def update_lattice_from_bbox(self, context, lattice, bbox_world_coords, matrix_world):  
         if self.orientation == 'GLOBAL':
             rotation = Matrix.Identity(4)
             bbox = util.bounds(bbox_world_coords)
+            bpy.context.scene.transform_orientation_slots[0].type = 'GLOBAL'
 
         elif self.orientation == 'LOCAL':
             rotation = matrix_world.to_quaternion().to_matrix().to_4x4()
             bbox = util.bounds(bbox_world_coords, rotation.inverted())
+            bpy.context.scene.transform_orientation_slots[0].type = 'LOCAL'
 
         elif self.orientation == 'CURSOR':
             mode = context.scene.cursor.rotation_mode
@@ -235,6 +238,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
                 rotation = context.scene.cursor.rotation_euler.to_matrix().to_4x4()
     
             bbox = util.bounds(bbox_world_coords, rotation.inverted())
+            bpy.context.scene.transform_orientation_slots[0].type = 'CURSOR'
 
         bound_min = Vector((bbox.x.min, bbox.y.min, bbox.z.min))
         bound_max = Vector((bbox.x.max, bbox.y.max, bbox.z.max))
@@ -249,10 +253,19 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         self.updateLattice(lattice, location, rotation, scale)
 
     def createLattice(self, context):
-        lattice_data = bpy.data.lattices.new('SimpleLattice')
-        lattice_obj = bpy.data.objects.new('SimpleLattice', lattice_data)
+        object_active = bpy.context.view_layer.objects.active
+        lattice_data = bpy.data.lattices.new(object_active.name + '_SimpleLattice')
+        lattice_obj = bpy.data.objects.new(object_active.name + '_SimpleLattice', lattice_data)
 
-        context.scene.collection.objects.link(lattice_obj)
+        #context.scene.collection.objects.link(lattice_obj)
+        
+        # create Lattice in the collection with the active selected object
+        obj = bpy.context.object
+        ucol = obj.users_collection
+        for i in ucol:
+            layer_collection = bpy.context.view_layer.layer_collection
+            layerColl = recurLayerCollection(layer_collection, i.name)
+            bpy.data.collections[layerColl.name].objects.link(lattice_obj)
 
         return lattice_obj
 
@@ -274,6 +287,24 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
     def add_ffd_modifier(self, objects, lattice, group_mapping):
         for obj in objects:
             ffd = obj.modifiers.new("SimpleLattice", "LATTICE")
+            
+            # good to see modified vertices if add more than one Lattice to the mesh/es
+            obj.modifiers[ffd.name].show_in_editmode = True
+            obj.modifiers[ffd.name].show_on_cage = True
+
+            # Move Lattice modifier to the top of modifiers stack (if needed)
+            # https://blender.stackexchange.com/questions/223134/adding-a-modifier-to-the-top-of-the-stack-of-multiple-objects-without-overwritin
+#            if self.on_top == True:
+#                obj.select_set(True)
+#                bpy.context.view_layer.objects.active = obj                
+#                bpy.ops.object.modifier_move_to_index(modifier=ffd.name, index=0)            
+            if self.modifier_position == 'on_top':
+                obj.select_set(True)
+                bpy.context.view_layer.objects.active = obj                
+                bpy.ops.object.modifier_move_to_index(modifier=ffd.name, index=0)
+            if self.modifier_position == 'bottom':
+                pass
+            
             ffd.object = lattice
             if group_mapping != None:
                 vertex_group_name = group_mapping[obj.name]
@@ -288,9 +319,10 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             obsolete_modifiers = []
             for modifier in obj.modifiers:
                 if modifier.type == 'LATTICE' and "SimpleLattice" in modifier.name:
-                    if modifier.object == None:
+                    if [modifier.object == None or modifier.vertex_group == "" 
+                            or modifier.vertex_group not in obj.vertex_groups]:
                         obsolete_modifiers.append(modifier)
-                    elif modifier.vertex_group == "":
+                    elif modifier.vertex_group != "":
                         used_vertex_groups.add(modifier.vertex_group)
 
             obsolete_groups = []
@@ -314,13 +346,14 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             if obj.mode == "EDIT":
                 bpy.ops.object.editmode_toggle()
 
-            group_index = 0
-            for grp in obj.vertex_groups:
-                if "SimpleLattice." in grp.name:
-                    index = int(grp.name.split(".")[-1])
-                    group_index = max(group_index, index)
+            #group_index = 0
+            #for grp in obj.vertex_groups:
+                #if "SimpleLattice." in grp.name:
+                    #index = int(grp.name.split(".")[-1])
+                    #group_index = max(group_index, index)
 
-            group = obj.vertex_groups.new(name=f"SimpleLattice.{group_index}")
+            #group = obj.vertex_groups.new(name=f"SimpleLattice.{group_index}")
+            group = obj.vertex_groups.new(name=f"SimpleLattice")
 
             group.add(vert_mapping[obj.name], 1.0, "REPLACE")
             group_mapping[obj.name] = group.name
@@ -329,3 +362,32 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
                 bpy.ops.object.editmode_toggle()
 
         return group_mapping
+        
+    def for_edit_mode(self, context):
+        active_object = context.view_layer.objects.active
+        if active_object.mode == "EDIT":
+
+            objects_originals = context.selected_objects
+
+            bpy.ops.object.mode_set(mode = 'OBJECT')
+            bpy.ops.object.empty_add()
+
+#            bpy.ops.object.duplicate()
+
+            objects_created = context.selected_objects
+
+            # removing objects with its data
+            # https://blender.stackexchange.com/questions/233204/how-can-i-purge-recently-deleted-objects
+            for obj in objects_created:
+                purge_data = [o.data for o in context.selected_objects if o.data]
+                bpy.data.batch_remove(context.selected_objects)
+                bpy.data.batch_remove([o for o in purge_data if not o.users])
+                
+            # selecting original objects with active
+            for obj in objects_originals:
+                obj.select_set(True)
+                context.view_layer.objects.active = active_object
+
+            bpy.ops.object.mode_set(mode = 'EDIT')
+            
+        bpy.ops.ed.undo_push()

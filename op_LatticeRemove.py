@@ -3,10 +3,10 @@ import bpy
 from . import util
 
 
-class Op_LatticeApplyOperator(bpy.types.Operator):
-    bl_idname = "object.op_lattice_apply"
-    bl_label = "Apply Lattice"
-    bl_description = "Applies the lattice to all objects whose FFD modifiers are targeting it"
+class Op_LatticeRemoveOperator(bpy.types.Operator):
+    bl_idname = "object.op_lattice_remove"
+    bl_label = "Remove Lattice"
+    bl_description = "Remove the lattice for all objects whose FFD modifiers are targeting it"
     bl_space_type = "VIEW_3D"
     bl_region_type = "TOOLS"
     bl_options = {"REGISTER", "UNDO"}
@@ -18,20 +18,12 @@ class Op_LatticeApplyOperator(bpy.types.Operator):
             bpy.ops.object.editmode_toggle()
 
         vertex_groups = []
-                    
+
         for obj in context.view_layer.objects:
             if obj.type in util.allowed_object_types:
-                vertex_groups.clear()                
-                
-                # checking for lattice on top of the modifiers stack (for any reason)
-                # https://blender.stackexchange.com/questions/233357/how-to-get-modifier-position
-                if obj.modifiers:
-                    if obj.modifiers[0].type == "LATTICE" and obj.modifiers[0].object == lattice:
-                        self.report({'INFO'}, 'Modifier applied')
-                    else:
-                        self.report({'INFO'}, 'Applied modifier was not first, result may not be as expected')
-                
-                for modifier in obj.modifiers:   
+                vertex_groups.clear()
+
+                for modifier in obj.modifiers:
                     if modifier.type == 'LATTICE' and "SimpleLattice" in modifier.name:
                         if modifier.object == lattice:
                             vertex_group = self.kill_lattice_modifer(
@@ -64,15 +56,15 @@ class Op_LatticeApplyOperator(bpy.types.Operator):
                                 obj.select_set(True)
                 
                 self.kill_vertex_groups(obj, vertex_groups)
-
+        
         # removing Lattice object with its data
         # https://blender.stackexchange.com/questions/233204/how-can-i-purge-recently-deleted-objects
         lattice_obs = [o for o in context.selected_objects if o.type == 'LATTICE']
         purge_data = set(o.data for o in lattice_obs)
         bpy.data.batch_remove(lattice_obs)
         bpy.data.batch_remove([o for o in purge_data if not o.users])
-        #self.report({'INFO'}, 'Applied modifier was not first, result may not be as expected')
-                
+        self.report({'INFO'}, 'Lattice was removed')
+
         context.view_layer.update()
         return {'FINISHED'}
 
@@ -103,11 +95,11 @@ class Op_LatticeApplyOperator(bpy.types.Operator):
             if modifier.id_data.mode != 'OBJECT':
                 bpy.ops.object.editmode_toggle()
 
-            bpy.ops.object.modifier_apply(modifier=modifier.name)
+            bpy.ops.object.modifier_remove(modifier=modifier.name)
 
-        else:
-            bpy.ops.object.modifier_remove(
-                modifier=modifier.name)
+        #else:
+            #bpy.ops.object.modifier_remove(
+                #modifier=modifier.name)
 
         return vertex_group
 

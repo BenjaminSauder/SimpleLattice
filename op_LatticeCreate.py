@@ -22,7 +22,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
 
-    init = False
+    #init = False
 
     # presets =  (('2', '2x2x2', ''),
     #             ('3', '3x3x3', ''),
@@ -319,11 +319,13 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             obsolete_modifiers = []
             for modifier in obj.modifiers:
                 if modifier.type == 'LATTICE' and "SimpleLattice" in modifier.name:
-                    if [modifier.object == None or modifier.vertex_group == "" 
-                            or modifier.vertex_group not in obj.vertex_groups]:
-                        obsolete_modifiers.append(modifier)
-                    elif modifier.vertex_group != "":
+                    if modifier.vertex_group != "":
                         used_vertex_groups.add(modifier.vertex_group)
+                    elif (modifier.object == None or (modifier.vertex_group == "" and modifier.vertex_group not in obj.vertex_groups)):
+                        #a,b,c = modifier.object == None, modifier.vertex_group == "", modifier.vertex_group not in obj.vertex_groups
+                        #print(f"obj:{a} - vertexgrp empty: {b} - not in groups: {c}" )
+                        obsolete_modifiers.append(modifier)
+
 
             obsolete_groups = []
             for grp in obj.vertex_groups:

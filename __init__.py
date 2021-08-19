@@ -143,6 +143,8 @@ def unregister():
 
     for c in classes:
         bpy.utils.unregister_class(c)
+        
+    del bpy.types.Scene.MODIFIERSTRENGTH_PG_main
 
 if __name__ == "__main__":
     register()

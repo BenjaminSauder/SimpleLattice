@@ -18,7 +18,7 @@ from bpy.types import PropertyGroup
 bl_info = {
     "name" : "SimpleLattice",
     "author" : "benjamin.sauder, Eugene Dudavkin",
-    "version": (0, 1, 0),
+    "version": (0, 1, 1),
     "blender" : (2, 93, 0),
     "location": "View3D",
     "description" : "A tool to simplify the workflow with lattice objects.",
@@ -34,7 +34,39 @@ from . import op_LatticeRemove
 #from . import preferences
 
 
+def get_u(self):
+    lattice = bpy.context.active_object
+    res = bpy.data.lattices[lattice.name]
+    return res.points_u
+    
+def set_u(self, value):
+    lattice = bpy.context.active_object
+    res = bpy.data.lattices[lattice.name] 
+    res.points_u = value
+
+def get_v(self):
+    lattice = bpy.context.active_object
+    res = bpy.data.lattices[lattice.name]
+    return res.points_v
+
+def set_v(self, value):
+    lattice = bpy.context.active_object
+    res = bpy.data.lattices[lattice.name] 
+    res.points_v = value
+
+def get_w(self):
+    lattice = bpy.context.active_object
+    res = bpy.data.lattices[lattice.name]
+    return res.points_w
+
+def set_w(self, value):
+    lattice = bpy.context.active_object
+    res = bpy.data.lattices[lattice.name] 
+    res.points_w = value
+    
+
 class MODIFIERSTRENGTH_PG_main(PropertyGroup):
+    
     def update_modifierstrength(self, context):
         lattice = context.active_object
         for o in bpy.data.objects:
@@ -54,13 +86,39 @@ class MODIFIERSTRENGTH_PG_main(PropertyGroup):
     ) 
     
 
+class RESOLUTIONUVW_PG_main(PropertyGroup):    
+        
+    change_u: bpy.props.IntProperty(
+        min         = 2,
+        max         = 20,
+        get=get_u,
+        set=set_u
+    )
+    
+    change_v: bpy.props.IntProperty(
+        min         = 2,
+        max         = 20,
+        get=get_v,
+        set=set_v
+    ) 
+       
+    change_w: bpy.props.IntProperty(
+        min         = 2,
+        max         = 20,
+        get=get_w,
+        set=set_w
+    )
+    
+        
 classes = [
     op_LatticeCreate.Op_LatticeCreateOperator,
     op_LatticeApply.Op_LatticeApplyOperator,
     op_LatticeRemove.Op_LatticeRemoveOperator,
     #preferences.SimpleLatticePrefs,
-    MODIFIERSTRENGTH_PG_main
+    MODIFIERSTRENGTH_PG_main,
+    RESOLUTIONUVW_PG_main
 ]
+
 
 prepend_menus = [
     # removing this as it add top menu entry
@@ -81,6 +139,7 @@ prepend_menus = [
 #]
 
 def context_menu(self, context):
+    #selected_objects = context.selected_objects
     lattice = context.active_object
     layout = self.layout
     
@@ -105,15 +164,15 @@ def context_menu(self, context):
         layout.separator()
 
     layout.separator()
-
-    selected_objects = context.selected_objects
+   
     if (context.active_object is not None) and (context.active_object.type == 'LATTICE') and ("SimpleLattice" in context.active_object.name):
-#        layout.label(text="Resolution:")
-#        col = layout.column()
-#        sub = col.column(align=True)
-#        sub.prop(bpy.data.lattices[lattice.name], "points_u", text="       U")
-#        sub.prop(bpy.data.lattices[lattice.name], "points_v", text="       V")
-#        sub.prop(bpy.data.lattices[lattice.name], "points_w", text="       W")         
+        layout.label(text="Resolution:")
+        col = layout.column()
+        sub = col.column(align=True)
+        res  = context.scene.RESOLUTIONUVW_PG_main
+        sub.prop(res, "change_u", text="       U")
+        sub.prop(res, "change_v", text="       V")
+        sub.prop(res, "change_w", text="       W")   
         
         layout.separator()
         
@@ -133,6 +192,7 @@ def register():
         bpy.utils.register_class(c)
 
     bpy.types.Scene.MODIFIERSTRENGTH_PG_main = bpy.props.PointerProperty(type = MODIFIERSTRENGTH_PG_main)
+    bpy.types.Scene.RESOLUTIONUVW_PG_main = bpy.props.PointerProperty(type = RESOLUTIONUVW_PG_main)
 
 def unregister():
     menus = prepend_menus
@@ -143,8 +203,9 @@ def unregister():
 
     for c in classes:
         bpy.utils.unregister_class(c)
-        
+    
     del bpy.types.Scene.MODIFIERSTRENGTH_PG_main
+    del bpy.types.Scene.RESOLUTIONUVW_PG_main
 
 if __name__ == "__main__":
     register()

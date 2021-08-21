@@ -31,10 +31,11 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
     # preset: bpy.props.EnumProperty(name="Presets", items=presets, default='2')
     orientation_types = (('GLOBAL', 'Global', ''),
                          ('LOCAL', 'Local', ''),
-                         ('CURSOR', 'Cursor', ''))
+                         ('CURSOR', 'Cursor', ''),
+                         ('NORMAL', 'Normal', ''))
 
     orientation: bpy.props.EnumProperty(
-        name="Orientation", items=orientation_types, default='LOCAL')
+        name="Orientation", items=orientation_types, default='NORMAL')
 
     #on_top: bpy.props.BoolProperty (name="On Top", default = False, description="Move modifier on top of stack")
     modifier_position: bpy.props.EnumProperty (
@@ -63,18 +64,16 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         layout = self.layout
         layout.use_property_split = True
 
-        row = layout.row()
-        row.prop(self, "orientation", text="Orientation", expand=True)
-        
         col = layout.column()
+        sub = col.row()
+        sub.prop(self, "orientation", text="Orientation")
+        
         col.separator()
         
-        row = layout.row()
-        row.prop(self, "modifier_position", expand=True)
+        sub = col.row()
+        sub.prop(self, "modifier_position", expand=True)
         
-        col = layout.column()
-#        col.separator()
-        
+#        col.separator()        
 #        col.prop(self, "on_top")
         
         col.separator()
@@ -84,7 +83,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         col.prop(self, "resolution_w", text="W")
 
         col.separator()
-
+        
         col.prop(self, "interpolation", text="Interpolation")
 
         col.separator()
@@ -176,13 +175,12 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         else:
             return {'CANCELLED'}
 
-
-    def set_selection(self, context, lattice, other):
+    def set_selection(self, context, lattice, other):        
         bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.select_all(action='DESELECT')
 
         lattice.select_set(True)
-        context.view_layer.objects.active = lattice
+        context.view_layer.objects.active = lattice 
         bpy.ops.object.editmode_toggle()
 
     def get_coords_from_verts(self, objects):
@@ -220,6 +218,16 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             rotation = Matrix.Identity(4)
             bbox = util.bounds(bbox_world_coords)
             bpy.context.scene.transform_orientation_slots[0].type = 'GLOBAL'
+            
+        elif self.orientation == 'NORMAL':
+            orig_transform = bpy.context.scene.transform_orientation_slots[0].type
+            bpy.context.scene.transform_orientation_slots[0].type = 'SimpleLattice_Orientation'
+            co = bpy.context.scene.transform_orientation_slots[0].custom_orientation
+            bpy.data.scenes[0].transform_orientation_slots[0].type = orig_transform
+            
+            rotation = co.matrix.to_quaternion().to_matrix().to_4x4()            
+            bbox = util.bounds(bbox_world_coords, rotation.inverted())                        
+            bpy.context.scene.transform_orientation_slots[0].type = 'LOCAL'
 
         elif self.orientation == 'LOCAL':
             rotation = matrix_world.to_quaternion().to_matrix().to_4x4()
@@ -239,7 +247,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
     
             bbox = util.bounds(bbox_world_coords, rotation.inverted())
             bpy.context.scene.transform_orientation_slots[0].type = 'CURSOR'
-
+            
         bound_min = Vector((bbox.x.min, bbox.y.min, bbox.z.min))
         bound_max = Vector((bbox.x.max, bbox.y.max, bbox.z.max))
         offset = (bound_min + bound_max) * 0.5
@@ -256,7 +264,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         object_active = bpy.context.view_layer.objects.active
         lattice_data = bpy.data.lattices.new(object_active.name + '_SimpleLattice')
         lattice_obj = bpy.data.objects.new(object_active.name + '_SimpleLattice', lattice_data)
-
+        
         #context.scene.collection.objects.link(lattice_obj)
         
         # create Lattice in the collection with the active selected object
@@ -366,9 +374,14 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         return group_mapping
         
     def for_edit_mode(self, context):
+        try:
+            bpy.ops.transform.create_orientation(name="SimpleLattice_Orientation", use=False, overwrite=True)
+        except:
+            bpy.ops.object.mode_set(mode='OBJECT')
+            bpy.ops.transform.create_orientation(name="SimpleLattice_Orientation", use=False, overwrite=True)
+                          
         active_object = context.view_layer.objects.active
-        if active_object.mode == "EDIT":
-
+        if active_object.mode == "EDIT":            
             objects_originals = context.selected_objects
 
             bpy.ops.object.mode_set(mode = 'OBJECT')

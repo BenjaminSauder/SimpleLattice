@@ -18,7 +18,7 @@ from bpy.types import PropertyGroup
 bl_info = {
     "name" : "SimpleLattice",
     "author" : "benjamin.sauder, Eugene Dudavkin",
-    "version": (0, 1, 1),
+    "version": (0, 1, 2),
     "blender" : (2, 93, 0),
     "location": "View3D",
     "description" : "A tool to simplify the workflow with lattice objects.",
@@ -31,7 +31,7 @@ bl_info = {
 from . import op_LatticeCreate
 from . import op_LatticeApply
 from . import op_LatticeRemove
-#from . import preferences
+from . import preferences
 
 
 def get_u(self):
@@ -111,10 +111,10 @@ class RESOLUTIONUVW_PG_main(PropertyGroup):
     
         
 classes = [
+    preferences.SimpleLatticePrefs,
     op_LatticeCreate.Op_LatticeCreateOperator,
     op_LatticeApply.Op_LatticeApplyOperator,
-    op_LatticeRemove.Op_LatticeRemoveOperator,
-    #preferences.SimpleLatticePrefs,
+    op_LatticeRemove.Op_LatticeRemoveOperator,    
     MODIFIERSTRENGTH_PG_main,
     RESOLUTIONUVW_PG_main
 ]

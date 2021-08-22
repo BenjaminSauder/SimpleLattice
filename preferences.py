@@ -9,13 +9,13 @@ class SimpleLatticePrefs(bpy.types.AddonPreferences):
                          ('CURSOR', 'Cursor', ''),
                          ('NORMAL', 'Normal', ''))
 
-    position_type = (('on_top','On Top',''),
-                     ('bottom','Bottom',''))
+    position_types = (('on_top','On Top',''),
+                      ('bottom','Bottom',''))
     
     interpolation_types = (('KEY_LINEAR', 'Linear', ''),
-                       ('KEY_CARDINAL', 'Cardinal', ''),
-                       ('KEY_CATMULL_ROM', 'Catmull-Rom', ''),
-                       ('KEY_BSPLINE', 'BSpline', ''))
+                           ('KEY_CARDINAL', 'Cardinal', ''),
+                           ('KEY_CATMULL_ROM', 'Catmull-Rom', ''),
+                           ('KEY_BSPLINE', 'BSpline', ''))
    
     default_orientation: bpy.props.EnumProperty(
         name="Default Orientation", 
@@ -25,7 +25,7 @@ class SimpleLatticePrefs(bpy.types.AddonPreferences):
 
     default_position: bpy.props.EnumProperty(
         name="Default Position", 
-        items=position_type, 
+        items=position_types, 
         default='bottom'
     )
 

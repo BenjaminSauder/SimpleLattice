@@ -265,16 +265,17 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         lattice_data = bpy.data.lattices.new(object_active.name + '_SimpleLattice')
         lattice_obj = bpy.data.objects.new(object_active.name + '_SimpleLattice', lattice_data)
         
-        #context.scene.collection.objects.link(lattice_obj)
-        
         # create Lattice in the collection with the active selected object
         obj = bpy.context.object
         ucol = obj.users_collection
-        for i in ucol:
-            layer_collection = bpy.context.view_layer.layer_collection
-            layerColl = recurLayerCollection(layer_collection, i.name)
-            bpy.data.collections[layerColl.name].objects.link(lattice_obj)
-
+        try:
+            for i in ucol:
+                layer_collection = bpy.context.view_layer.layer_collection
+                layerColl = recurLayerCollection(layer_collection, i.name)
+                bpy.data.collections[layerColl.name].objects.link(lattice_obj)
+        except:
+            context.scene.collection.objects.link(lattice_obj)
+            
         return lattice_obj
 
     def updateLattice(self, lattice, location, rotation, scale):

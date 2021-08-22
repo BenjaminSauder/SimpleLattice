@@ -35,3 +35,14 @@ https://user-images.githubusercontent.com/87300864/129006206-5f0216a5-43be-4c3d-
 https://user-images.githubusercontent.com/87300864/130314258-247fdae1-cb4c-4a04-9325-b5ede65cbcb1.mp4
 
 https://user-images.githubusercontent.com/87300864/130314393-aa7842e3-978c-4d40-aa35-995bc98be90c.mp4
+
+-----------------------------------------------------------------------------------------------------
+
+## Update 0.1.2
+1. Little UI tweaks.
+2. Added Addon preferences - where you can define default values for adding Lattice.
+
+![SimpleLattice_0 1 2](https://user-images.githubusercontent.com/87300864/130365642-55e18d9a-a52f-4315-b31d-193001bab57c.png)
+![SimpleLattice_AddonPreferences_0 1 2](https://user-images.githubusercontent.com/87300864/130365643-890445a6-7de0-4759-b936-4e8d573a21de.png)
+
+------------------------------------------------------------------------------------------------------

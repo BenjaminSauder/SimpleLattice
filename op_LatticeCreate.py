@@ -3,6 +3,7 @@ from mathutils import *
 
 from . import util
 
+
 # Recursivly transverse layer_collection for a particular name
 def recurLayerCollection(layerColl, collName):
     found = None
@@ -22,7 +23,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
 
-    #init = False
+    init = False
 
     # presets =  (('2', '2x2x2', ''),
     #             ('3', '3x3x3', ''),
@@ -66,29 +67,26 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
         col = layout.column()
         sub = col.row()
-        sub.prop(self, "orientation", text="Orientation")
+        sub.prop(self, "orientation")
         
-        col.separator()
-        
+        col.separator()        
         sub = col.row()
         sub.prop(self, "modifier_position", expand=True)
         
-#        col.separator()        
-#        col.prop(self, "on_top")
+        col.separator()
+        sub = col.row()
+        sub2 = sub.column(align=True)
+        sub2.prop(self, "resolution_u", text="Resolution U")
+        sub2.prop(self, "resolution_v", text="V")
+        sub2.prop(self, "resolution_w", text="W")
+
+        col.separator()
+        sub = col.row()        
+        sub.prop(self, "interpolation")
         
         col.separator()
-
-        col.prop(self, "resolution_u", text="Resolution U")
-        col.prop(self, "resolution_v", text="V")
-        col.prop(self, "resolution_w", text="W")
-
-        col.separator()
-        
-        col.prop(self, "interpolation", text="Interpolation")
-
-        col.separator()
-
-        col.prop(self, "scale", text="Scale")
+        sub = col.row()  
+        sub.prop(self, "scale")
 
     @classmethod
     def poll(self, context):
@@ -109,15 +107,19 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         # preventing undo objects data if settings in "Adjust last action" panel was changed
         self.for_edit_mode(context) 
     
-#        if not Op_LatticeCreateOperator.init:
-#            prefs = bpy.context.preferences.addons[__package__].preferences
+        # Defaults from Addon preferences
+        if not Op_LatticeCreateOperator.init:
+            prefs = bpy.context.preferences.addons[__package__].preferences
 
-#            self.interpolation = prefs.default_interpolation
-#            self.resolution_u = prefs.default_resolution_u
-#            self.resolution_v = prefs.default_resolution_v
-#            self.resolution_w = prefs.default_resolution_w
+            self.orientation = prefs.default_orientation
+            self.modifier_position = prefs.default_position
+            self.resolution_u = prefs.default_resolution_u
+            self.resolution_v = prefs.default_resolution_v
+            self.resolution_w =  prefs.default_resolution_w            
+            self.interpolation = prefs.default_interpolation
+            self.scale = prefs.default_scale
 
-#            Op_LatticeCreateOperator.init = True
+            Op_LatticeCreateOperator.init = True
 
         objects = []
         all_objecst_are_meshes = True

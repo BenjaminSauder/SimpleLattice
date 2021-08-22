@@ -34,32 +34,60 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
                          ('LOCAL', 'Local', ''),
                          ('CURSOR', 'Cursor', ''),
                          ('NORMAL', 'Normal', ''))
-
-    orientation: bpy.props.EnumProperty(
-        name="Orientation", items=orientation_types, default='NORMAL')
-
-    #on_top: bpy.props.BoolProperty (name="On Top", default = False, description="Move modifier on top of stack")
-    modifier_position: bpy.props.EnumProperty (
-        name="Modifier", 
-        items=[('on_top','On Top',''),
-                ('bottom','Bottom','')], 
-        default="bottom", 
-        description="Move modifier on top or bottom in the stack")
-
-    resolution_u: bpy.props.IntProperty(name="u", default=2, min=2)
-    resolution_v: bpy.props.IntProperty(name="v", default=2, min=2)
-    resolution_w: bpy.props.IntProperty(name="w", default=2, min=2)
-
-    scale: bpy.props.FloatProperty(
-        name="Scale", default=1.0, min=0.001, soft_min=0.1, soft_max=2.0)
+                         
+    position_types = (('on_top','On Top',''),
+                      ('bottom','Bottom',''))
 
     interpolation_types = (('KEY_LINEAR', 'Linear', ''),
                            ('KEY_CARDINAL', 'Cardinal', ''),
                            ('KEY_CATMULL_ROM', 'Catmull-Rom', ''),
                            ('KEY_BSPLINE', 'BSpline', ''))
 
+    orientation: bpy.props.EnumProperty(
+        name="Orientation", 
+        items=orientation_types, 
+        default='NORMAL'
+    )
+
+    #on_top: bpy.props.BoolProperty (name="On Top", default = False, description="Move modifier on top of stack")
+    modifier_position: bpy.props.EnumProperty (
+        name="Modifier", 
+        items=position_types,
+        default="bottom", 
+        description="Move modifier on top or bottom in the stack"
+    )
+
+    resolution_u: bpy.props.IntProperty(
+        name="u", 
+        default=2, 
+        min=2
+    )
+    
+    resolution_v: bpy.props.IntProperty(
+        name="v", 
+        default=2, 
+        min=2
+    )
+    
+    resolution_w: bpy.props.IntProperty(
+        name="w", 
+        default=2, 
+        min=2
+    )
+    
     interpolation: bpy.props.EnumProperty(
-        name="Interpolation", items=interpolation_types, default='KEY_LINEAR')
+        name="Interpolation", 
+        items=interpolation_types, 
+        default='KEY_LINEAR'
+    )
+        
+    scale: bpy.props.FloatProperty(
+        name="Scale", 
+        default=1.0, 
+        min=0.001, 
+        soft_min=0.1, 
+        soft_max=2.0
+    )
 
     def draw(self, context):
         layout = self.layout

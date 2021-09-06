@@ -258,6 +258,12 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             rotation = co.matrix.to_quaternion().to_matrix().to_4x4()            
             bbox = util.bounds(bbox_world_coords, rotation.inverted())                        
             bpy.context.scene.transform_orientation_slots[0].type = 'LOCAL'
+            
+            # removing custom orientation
+            orig_transform = bpy.context.scene.transform_orientation_slots[0].type
+            bpy.context.scene.transform_orientation_slots[0].type = 'SimpleLattice_Orientation'
+            bpy.ops.transform.delete_orientation()
+            bpy.data.scenes[0].transform_orientation_slots[0].type = orig_transform
 
         elif self.orientation == 'LOCAL':
             rotation = matrix_world.to_quaternion().to_matrix().to_4x4()

@@ -22,18 +22,17 @@ class Op_LatticeApplyOperator(bpy.types.Operator):
         for obj in context.view_layer.objects:
             if obj.type in util.allowed_object_types:
                 vertex_groups.clear()                
-                
-                # checking for lattice on top of the modifiers stack (for any reason)
-                # https://blender.stackexchange.com/questions/233357/how-to-get-modifier-position
-                if obj.modifiers:
-                    if obj.modifiers[0].type == "LATTICE" and obj.modifiers[0].object == lattice:
-                        self.report({'INFO'}, 'Modifier applied')
-                    else:
-                        self.report({'INFO'}, 'Applied modifier was not first, result may not be as expected')
-                
+      
                 for modifier in obj.modifiers:   
                     if modifier.type == 'LATTICE' and "SimpleLattice" in modifier.name:
                         if modifier.object == lattice:
+                            # checking for lattice on top of the modifiers stack (for any reason)
+                            # https://blender.stackexchange.com/questions/233357/how-to-get-modifier-position
+                            if obj.modifiers[0].type == "LATTICE" and obj.modifiers[0].object == lattice:
+                                self.report({'INFO'}, 'Modifier applied')
+                            else:
+                                self.report({'INFO'}, 'Applied modifier was not first, result may not be as expected')
+                                
                             vertex_group = self.kill_lattice_modifer(
                                 context, modifier, lattice)
                             if vertex_group:
@@ -64,6 +63,11 @@ class Op_LatticeApplyOperator(bpy.types.Operator):
                                 obj.select_set(True)
                 
                 self.kill_vertex_groups(obj, vertex_groups)
+                
+#        try:
+#            self.kill_custom_orientation()
+#        except:
+#            pass
 
         # removing Lattice object with its data
         # https://blender.stackexchange.com/questions/233204/how-can-i-purge-recently-deleted-objects
@@ -127,3 +131,9 @@ class Op_LatticeApplyOperator(bpy.types.Operator):
             print(f"removed vertex_group: {group}")
             vg = obj.vertex_groups.get(group)
             obj.vertex_groups.remove(vg)
+
+#    def kill_custom_orientation(self):
+#        orig_transform = bpy.context.scene.transform_orientation_slots[0].type
+#        bpy.context.scene.transform_orientation_slots[0].type = 'SimpleLattice_Orientation'
+#        bpy.ops.transform.delete_orientation()
+#        bpy.data.scenes[0].transform_orientation_slots[0].type = orig_transform

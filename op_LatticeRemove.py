@@ -56,6 +56,11 @@ class Op_LatticeRemoveOperator(bpy.types.Operator):
                                 obj.select_set(True)
                 
                 self.kill_vertex_groups(obj, vertex_groups)
+                
+#        try:
+#            self.kill_custom_orientation()
+#        except:
+#            pass
         
         # removing Lattice object with its data
         # https://blender.stackexchange.com/questions/233204/how-can-i-purge-recently-deleted-objects
@@ -119,3 +124,9 @@ class Op_LatticeRemoveOperator(bpy.types.Operator):
             print(f"removed vertex_group: {group}")
             vg = obj.vertex_groups.get(group)
             obj.vertex_groups.remove(vg)
+
+#    def kill_custom_orientation(self):
+#        orig_transform = bpy.context.scene.transform_orientation_slots[0].type
+#        bpy.context.scene.transform_orientation_slots[0].type = 'SimpleLattice_Orientation'
+#        bpy.ops.transform.delete_orientation()
+#        bpy.data.scenes[0].transform_orientation_slots[0].type = orig_transform

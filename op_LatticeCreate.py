@@ -49,7 +49,8 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         default='NORMAL'
     )
 
-    #on_top: bpy.props.BoolProperty (name="On Top", default = False, description="Move modifier on top of stack")
+    ignore_mods: bpy.props.BoolProperty (name="Ignore Modifiers", default = False, description="Ignore Modifiers for calculation BBOX for lattice")
+    
     modifier_position: bpy.props.EnumProperty (
         name="Modifier", 
         items=position_types,
@@ -103,6 +104,10 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         
         col.separator()
         sub = col.row()
+        sub.prop(self, "ignore_mods")
+        
+        col.separator()
+        sub = col.row()
         sub2 = sub.column(align=True)
         sub2.prop(self, "resolution_u", text="Resolution U")
         sub2.prop(self, "resolution_v", text="V")
@@ -133,7 +138,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
     def execute(self, context):
         # if add lattice in Edit mode, 
         # preventing undo objects data if settings in "Adjust last action" panel was changed
-        self.for_edit_mode(context) 
+        self.for_edit_mode(context)
     
         # Defaults from Addon preferences
         if not Op_LatticeCreateOperator.init:
@@ -141,6 +146,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
             self.orientation = prefs.default_orientation
             self.modifier_position = prefs.default_position
+            self.ignore_mods = prefs.default_ignore_mods
             self.resolution_u = prefs.default_resolution_u
             self.resolution_v = prefs.default_resolution_v
             self.resolution_w =  prefs.default_resolution_w            
@@ -158,7 +164,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
                 if all_objecst_are_meshes and obj.type != 'MESH':
                     all_objecst_are_meshes = False
-
+       
         # for the shitty case when the active object is in edit mode,
         # but is not selected..
         if len(objects) == 0:
@@ -166,14 +172,27 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
         self.vertex_mode = all_objecst_are_meshes and objects[0].mode == 'EDIT'
 
-        if len(objects) > 0:
+        if len(objects) > 0:        
             #self.mapping = None
             self.group_mapping = None
             self.vert_mapping = None
             #self.object_names = list(map(lambda x: x.name, objects))
-
+            
             self.cleanup(objects)
-
+            
+            #---------
+            modifiers_not_visible = []
+            for obj in objects:        
+                for modifier in obj.modifiers:
+                    if modifier.show_viewport == False:
+                        modifiers_not_visible.append(modifier)
+                        print("Modifiers hidden = ", modifier.name)
+                    if self.ignore_mods == True:
+                        modifier.show_viewport = False 
+                if context.mode == 'OBJECT':
+                    context.view_layer.update()
+            #---------
+             
             if self.vertex_mode:
                 self.coords, self.vert_mapping = self.get_coords_from_verts(objects)
 
@@ -186,20 +205,28 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
             else:
                 self.coords = self.get_coords_from_objects(objects)
-
+                  
             lattice = self.createLattice(context)
             #self.lattice = lattice
             #self.lattice_name = lattice.name
-
+            
             self.matrix = context.active_object.matrix_world.copy()
-            
-            self.update_lattice_from_bbox(context, lattice, self.coords, self.matrix)
-            
+           
+            self.update_lattice_from_bbox(context, lattice, self.coords, self.matrix)            
+
             self.add_ffd_modifier(objects, lattice, self.group_mapping)
 
             self.set_selection(context, lattice, objects)
 
             context.view_layer.update()
+
+            #---------
+            for obj in objects:
+                for modifier in obj.modifiers:
+                    modifier.show_viewport = True
+                for modifier in modifiers_not_visible:
+                    modifier.show_viewport = False
+            #---------
             
             return {'FINISHED'}
         else:
@@ -243,7 +270,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
         return bbox_world_coords
 
-    def update_lattice_from_bbox(self, context, lattice, bbox_world_coords, matrix_world):  
+    def update_lattice_from_bbox(self, context, lattice, bbox_world_coords, matrix_world):                           
         if self.orientation == 'GLOBAL':
             rotation = Matrix.Identity(4)
             bbox = util.bounds(bbox_world_coords)
@@ -258,12 +285,6 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             rotation = co.matrix.to_quaternion().to_matrix().to_4x4()            
             bbox = util.bounds(bbox_world_coords, rotation.inverted())                        
             bpy.context.scene.transform_orientation_slots[0].type = 'LOCAL'
-            
-            # removing custom orientation
-            orig_transform = bpy.context.scene.transform_orientation_slots[0].type
-            bpy.context.scene.transform_orientation_slots[0].type = 'SimpleLattice_Orientation'
-            bpy.ops.transform.delete_orientation()
-            bpy.data.scenes[0].transform_orientation_slots[0].type = orig_transform
 
         elif self.orientation == 'LOCAL':
             rotation = matrix_world.to_quaternion().to_matrix().to_4x4()
@@ -284,6 +305,12 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             bbox = util.bounds(bbox_world_coords, rotation.inverted())
             bpy.context.scene.transform_orientation_slots[0].type = 'CURSOR'
             
+        # removing custom orientation
+        orig_transform = bpy.context.scene.transform_orientation_slots[0].type
+        bpy.context.scene.transform_orientation_slots[0].type = 'SimpleLattice_Orientation'
+        bpy.ops.transform.delete_orientation()
+        bpy.data.scenes[0].transform_orientation_slots[0].type = orig_transform
+        
         bound_min = Vector((bbox.x.min, bbox.y.min, bbox.z.min))
         bound_max = Vector((bbox.x.max, bbox.y.max, bbox.z.max))
         offset = (bound_min + bound_max) * 0.5
@@ -416,7 +443,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         except:
             bpy.ops.object.mode_set(mode='OBJECT')
             bpy.ops.transform.create_orientation(name="SimpleLattice_Orientation", use=False, overwrite=True)
-                          
+
         active_object = context.view_layer.objects.active
         if active_object.mode == "EDIT":            
             objects_originals = context.selected_objects

@@ -29,6 +29,11 @@ class SimpleLatticePrefs(bpy.types.AddonPreferences):
         default='bottom'
     )
 
+    default_ignore_mods: bpy.props.BoolProperty(
+        name="Ignore Modifiers", 
+        default = False, 
+        description="Ignore Modifiers for calculation BBOX for lattice")
+        
     default_resolution_u: bpy.props.IntProperty(
         #name="Default U", 
         default=2, 
@@ -73,6 +78,10 @@ class SimpleLatticePrefs(bpy.types.AddonPreferences):
         col.separator()        
         sub = col.row()
         sub.prop(self, "default_position", expand=True)
+
+        col.separator()        
+        sub = col.row()
+        sub.prop(self, "default_ignore_mods")
         
         col.separator()
         sub = col.row()

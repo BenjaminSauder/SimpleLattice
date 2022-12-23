@@ -107,8 +107,12 @@ class Op_LatticeApplyOperator(bpy.types.Operator):
             if modifier.id_data.mode != 'OBJECT':
                 bpy.ops.object.editmode_toggle()
 
-            bpy.ops.object.modifier_apply(modifier=modifier.name)
-
+            try:
+                bpy.ops.object.modifier_apply(modifier=modifier.name)
+            except:                
+                self.report({'WARNING'}, 'Modifier applied to multi-user data. Creating single-user and applying.')
+                bpy.ops.object.modifier_apply(modifier=modifier.name, single_user=True)
+                
         else:
             bpy.ops.object.modifier_remove(
                 modifier=modifier.name)

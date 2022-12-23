@@ -18,7 +18,7 @@ from bpy.types import PropertyGroup
 bl_info = {
     "name" : "SimpleLattice",
     "author" : "benjamin.sauder, Eugene Dudavkin",
-    "version": (0, 1, 3),
+    "version": (0, 1, 4),
     "blender" : (2, 93, 0),
     "location": "View3D",
     "description" : "A tool to simplify the workflow with lattice objects.",
@@ -128,6 +128,8 @@ prepend_menus = [
     
     bpy.types.VIEW3D_MT_edit_mesh_context_menu,
     
+    bpy.types.VIEW3D_MT_gpencil_edit_context_menu,
+    
     bpy.types.VIEW3D_MT_edit_lattice_context_menu,
     
     bpy.types.VIEW3D_MT_edit_lattice,
@@ -140,7 +142,7 @@ prepend_menus = [
 
 def context_menu(self, context):
     #selected_objects = context.selected_objects
-    lattice = context.active_object
+    #lattice = context.active_object
     layout = self.layout
     
     show_apply_op = op_LatticeApply.Op_LatticeApplyOperator.poll(context)

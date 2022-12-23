@@ -23,44 +23,79 @@ class Op_LatticeApplyOperator(bpy.types.Operator):
             if obj.type in util.allowed_object_types:
                 vertex_groups.clear()                
       
-                for modifier in obj.modifiers:   
-                    if modifier.type == 'LATTICE' and "SimpleLattice" in modifier.name:
-                        if modifier.object == lattice:
-                            # checking for lattice on top of the modifiers stack (for any reason)
-                            # https://blender.stackexchange.com/questions/233357/how-to-get-modifier-position
-                            if obj.modifiers[0].type == "LATTICE" and obj.modifiers[0].object == lattice:
-                                self.report({'INFO'}, 'Modifier applied')
-                            else:
-                                self.report({'INFO'}, 'Applied modifier was not first, result may not be as expected')
+                if obj.type == "MESH":
+                    for modifier in obj.modifiers:   
+                        if modifier.type == 'LATTICE' and "SimpleLattice" in modifier.name:
+                            if modifier.object == lattice:
+                                # checking for lattice on top of the modifiers stack (for any reason)
+                                # https://blender.stackexchange.com/questions/233357/how-to-get-modifier-position
+                                if obj.modifiers[0].type == "LATTICE" and obj.modifiers[0].object == lattice:
+                                    self.report({'INFO'}, 'Modifier applied')
+                                else:
+                                    self.report({'INFO'}, 'Applied modifier was not first, result may not be as expected')
                                 
-                            vertex_group = self.kill_lattice_modifer(
-                                context, modifier, lattice)
-                            if vertex_group:
-                                vertex_groups.append(vertex_group)
+                                vertex_group = self.kill_lattice_modifer(context, modifier, lattice)
+                                if vertex_group:
+                                    vertex_groups.append(vertex_group)
 
-                                # Clear any selection
-                                for f in obj.data.polygons:
-                                    f.select = False
-                                for e in obj.data.edges:
-                                    e.select = False
-                                for v in obj.data.vertices:
-                                    v.select = False
-                                # Get verts in vertex group
-                                verts = [v for v in obj.data.vertices if obj.vertex_groups[vertex_group].index in [i.group for i in v.groups]]
-                                # Select verts in vertex group
-                                for v in verts:
-                                    v.select = True
+                                    # Clear any selection
+                                    for f in obj.data.polygons:
+                                        f.select = False
+                                    for e in obj.data.edges:
+                                        e.select = False
+                                    for v in obj.data.vertices:
+                                        v.select = False
+                                    # Get verts in vertex group
+                                    verts = [v for v in obj.data.vertices if obj.vertex_groups[vertex_group].index in [i.group for i in v.groups]]
+                                    # Select verts in vertex group
+                                    for v in verts:
+                                        v.select = True
                 
-                                # if apply with vertex groups 
-                                # then select all objects and switch to EDIT mode
-                                obj.select_set(True)
-                                bpy.ops.object.editmode_toggle()
-                                bpy.ops.mesh.select_mode(type="VERT")
+                                    # if apply with vertex groups 
+                                    # then select all objects and switch to EDIT mode
+                                    obj.select_set(True)
+                                    bpy.ops.object.editmode_toggle()
+                                    bpy.ops.mesh.select_mode(type="VERT")
 
-                            if not vertex_group:
-                                # if apply without vertex groups 
-                                # then select all objects and stay in OBJECT mode
-                                obj.select_set(True)
+                                if not vertex_group:
+                                    # if apply without vertex groups 
+                                    # then select all objects and stay in OBJECT mode
+                                    obj.select_set(True)
+                
+                if obj.type == "GPENCIL":
+                    for modifier in obj.grease_pencil_modifiers:   
+                        if modifier.type == 'GP_LATTICE' and "SimpleLattice" in modifier.name:
+                            if modifier.object == lattice:
+                                # checking for lattice on top of the grease_pencil_modifiers stack (for any reason)
+                                # https://blender.stackexchange.com/questions/233357/how-to-get-modifier-position
+                                if obj.grease_pencil_modifiers[0].type == "GP_LATTICE" and obj.grease_pencil_modifiers[0].object == lattice:
+                                    self.report({'INFO'}, 'Modifier applied')
+                                else:
+                                    self.report({'INFO'}, 'Applied modifier was not first, result may not be as expected')
+                                
+                                vertex_group = self.kill_lattice_gpencil_modifer(context, modifier, lattice)
+                                if vertex_group:
+                                    vertex_groups.append(vertex_group)
+
+                                    # Clear any selection
+#                                    for v in obj.data.points:
+#                                        v.select = False
+#                                    # Get verts in vertex group
+#                                    verts = [v for v in obj.data.points if obj.vertex_groups[vertex_group].index in [i.group for i in v.groups]]
+#                                    # Select verts in vertex group
+#                                    for v in verts:
+#                                        v.select = True
+                
+                                    # if apply with vertex groups 
+                                    # then select all objects and switch to EDIT mode
+                                    obj.select_set(True)
+                                    bpy.ops.object.editmode_toggle()
+                                    bpy.ops.mesh.select_mode(type="VERT")
+
+                                if not vertex_group:
+                                    # if apply without vertex groups 
+                                    # then select all objects and stay in OBJECT mode
+                                    obj.select_set(True)
                 
                 self.kill_vertex_groups(obj, vertex_groups)
                 
@@ -114,8 +149,36 @@ class Op_LatticeApplyOperator(bpy.types.Operator):
                 bpy.ops.object.modifier_apply(modifier=modifier.name, single_user=True)
                 
         else:
-            bpy.ops.object.modifier_remove(
-                modifier=modifier.name)
+            bpy.ops.object.modifier_remove(modifier=modifier.name)
+
+        return vertex_group
+
+    def kill_lattice_gpencil_modifer(self, context, modifier, target):
+        vertex_group = ""
+
+        if modifier.type != "GP_LATTICE" or modifier.object != target:
+            return vertex_group
+
+        if context.active_object != modifier.id_data:
+            self.set_active(context, modifier.id_data)
+
+        if modifier.vertex_group != None:
+            vertex_group = modifier.vertex_group
+
+        if modifier.show_viewport:
+
+            if modifier.id_data.mode != 'OBJECT':
+                bpy.ops.object.editmode_toggle()
+
+            try:
+#                bpy.ops.object.modifier_apply(modifier=modifier.name)
+                bpy.ops.object.gpencil_modifier_apply(modifier=modifier.name)
+            except:                
+                self.report({'WARNING'}, 'Modifier applied to multi-user data. Creating single-user and applying.')
+                bpy.ops.object.gpencil_modifier_apply(modifier=modifier.name, single_user=True)
+                
+        else:
+            bpy.ops.object.gpencil_modifier_remove(modifier=modifier.name)
 
         return vertex_group
 

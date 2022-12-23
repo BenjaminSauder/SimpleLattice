@@ -52,3 +52,7 @@ https://user-images.githubusercontent.com/87300864/130314393-aa7842e3-978c-4d40-
 ![update 0 1 3](https://user-images.githubusercontent.com/87300864/179476670-bf75c4bb-6f91-4d0e-a618-fe233f775600.png)
 2. Added Addon preference for "Ignore Modifiers".
 ![update 0 1 3 prefs](https://user-images.githubusercontent.com/87300864/179476954-3f40aa49-9e0b-40e0-ab50-7fe92b8af7c5.png)
+
+## Update 0.1.4
+1. Fix for "Flat" surfaces (was impossible to manipulate lattice points)
+2. Fix for Grease Pencil objects (can create lattice for object, but not for gpencil selection points)

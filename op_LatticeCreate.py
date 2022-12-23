@@ -249,7 +249,41 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             #obj.select_set(False)
 
             vert_indices = []
-            vertices = obj.data.vertices
+            
+            if obj.type == "MESH":
+                #print("MESH coords")
+                vertices = obj.data.vertices
+
+
+
+            '''
+            stoped here
+            
+            #1) To get the GP-Object data
+            GPObj = bpy.data.objects['GP Object Name'].data
+
+            #2) To get the GP-layers, use layer name or index.
+            GPLyr = GPObj.layers['Layer Name']
+
+            #3) To get the GP-Frames, use index. But there are other properties of the layer
+            #   you can access e.g., opacity, thickness, select, etc. You can add or remove the frame.
+            GPFrm = GPLyr.frames[0]
+
+            #4) To get the GP-strokes, use index. You can add or remove a stroke, change the
+            #   display-mode, line-width, material index, etc. 
+            GPStk = GPFrm.strokes[0]
+
+            #5) To get the GP-points, you can use the index to get individual points.
+            #   You can add or remove points. 
+            GPPts = GPStk.points
+            
+            '''
+            if obj.type == "GPENCIL":
+                print("GPENCIL coords")
+                #vertices = obj.data.points
+                vertices = obj.data.points.layers[0].frames[0].strokes[0].points
+
+                
             for vert in vertices:
                 if vert.select == True:
                     index = vert.index
@@ -327,7 +361,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         object_active = bpy.context.view_layer.objects.active
         lattice_data = bpy.data.lattices.new(object_active.name + '_SimpleLattice')
         lattice_obj = bpy.data.objects.new(object_active.name + '_SimpleLattice', lattice_data)
-        
+                    
         # create Lattice in the collection with the active selected object
         obj = bpy.context.object
         ucol = obj.users_collection
@@ -352,17 +386,32 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
         lattice.location = location
         lattice.rotation_euler = rotation.to_euler()
+        
+        #fix for flat selection or surface
+        if scale.x == 0:
+            scale.x=scale.x+0.0001
+        if scale.y == 0:
+            scale.y=scale.y+0.0001
+        if scale.z == 0:
+            scale.z=scale.z+0.0001
+        #=================================
+            
         lattice.scale = Vector((scale.x * self.scale,
                                 scale.y * self.scale,
                                 scale.z * self.scale))
 
     def add_ffd_modifier(self, objects, lattice, group_mapping):
         for obj in objects:
-            ffd = obj.modifiers.new("SimpleLattice", "LATTICE")
+            if obj.type == "MESH":
+                ffd = obj.modifiers.new("SimpleLattice", "LATTICE")
             
-            # good to see modified vertices if add more than one Lattice to the mesh/es
-            obj.modifiers[ffd.name].show_in_editmode = True
-            obj.modifiers[ffd.name].show_on_cage = True
+                # good to see modified vertices if add more than one Lattice to the mesh/es
+                obj.modifiers[ffd.name].show_in_editmode = True
+                obj.modifiers[ffd.name].show_on_cage = True
+                
+            if obj.type == "GPENCIL":
+                ffd = obj.grease_pencil_modifiers.new("SimpleLattice", "GP_LATTICE")                
+                obj.grease_pencil_modifiers[ffd.name].show_in_editmode = True
 
             # Move Lattice modifier to the top of modifiers stack (if needed)
             # https://blender.stackexchange.com/questions/223134/adding-a-modifier-to-the-top-of-the-stack-of-multiple-objects-without-overwritin
@@ -427,10 +476,19 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
                     #group_index = max(group_index, index)
 
             #group = obj.vertex_groups.new(name=f"SimpleLattice.{group_index}")
-            group = obj.vertex_groups.new(name=f"SimpleLattice")
+            if obj.type == "MESH":
+                print("creating group for MESH")
+                group = obj.vertex_groups.new(name=f"SimpleLattice")
 
-            group.add(vert_mapping[obj.name], 1.0, "REPLACE")
-            group_mapping[obj.name] = group.name
+                group.add(vert_mapping[obj.name], 1.0, "REPLACE")
+                group_mapping[obj.name] = group.name
+            
+#            if obj.type == "GPENCIL":
+#                print("creating group for GP")
+#                group = obj.vertex_groups.new(name=f"SimpleLattice")
+#                arr = [1]
+#                group.add(arr, 1.0, "REPLACE")
+#                group_mapping[obj.name] = group.name
 
             if mode != obj.mode:
                 bpy.ops.object.editmode_toggle()

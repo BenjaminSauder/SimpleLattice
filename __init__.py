@@ -18,7 +18,7 @@ from bpy.types import PropertyGroup
 bl_info = {
     "name" : "SimpleLattice",
     "author" : "benjamin.sauder, Eugene Dudavkin",
-    "version": (0, 1, 4),
+    "version": (0, 1, 5),
     "blender" : (2, 93, 0),
     "location": "View3D",
     "description" : "A tool to simplify the workflow with lattice objects.",
@@ -122,7 +122,8 @@ classes = [
 
 prepend_menus = [
     # removing this as it add top menu entry
-    #bpy.types.VIEW3D_MT_edit_mesh,
+#    bpy.types.VIEW3D_MT_edit_mesh,
+#    bpy.types.VIEW3D_MT_object,    
 
     bpy.types.VIEW3D_MT_object_context_menu,
     
@@ -135,10 +136,11 @@ prepend_menus = [
     bpy.types.VIEW3D_MT_edit_lattice,
 ]
 
-#append_menus = [
-#    # removing this as it add bottom menu entry
-#    bpy.types.VIEW3D_MT_object,
-#]
+append_menus = [
+    # removing this as it add bottom menu entry
+    bpy.types.VIEW3D_MT_edit_mesh,
+    bpy.types.VIEW3D_MT_object, 
+]
 
 def context_menu(self, context):
     #selected_objects = context.selected_objects
@@ -150,8 +152,8 @@ def context_menu(self, context):
     show_create_op = op_LatticeCreate.Op_LatticeCreateOperator.poll(context)
     do_show = show_apply_op or show_create_op
 
-#    if do_show and type(self) in append_menus:
-#        layout.separator()   
+    if do_show and type(self in append_menus):
+        layout.separator()   
 
     if show_apply_op:
         layout.operator("object.op_lattice_apply")
@@ -167,8 +169,8 @@ def context_menu(self, context):
 
     layout.separator()
    
-    if (context.active_object is not None) and (context.active_object.type == 'LATTICE') and ("SimpleLattice" in context.active_object.name):
-        layout.label(text="Resolution:")
+    if (context.active_object is not None) and (context.active_object.type == 'LATTICE') and ("SimpleLattice" in context.active_object.name) and (context.active_object.mode == 'EDIT'):
+        layout.label(text="Simple Lattice Resolution:")
         col = layout.column()
         sub = col.column(align=True)
         res  = context.scene.RESOLUTIONUVW_PG_main
@@ -177,18 +179,43 @@ def context_menu(self, context):
         sub.prop(res, "change_w", text="       W")   
         
         layout.separator()
-        
+
+    if (context.active_object is not None) and (context.active_object.type == 'LATTICE') and ("SimpleLattice" in context.active_object.name):        
         props  = context.scene.MODIFIERSTRENGTH_PG_main
-        layout.prop(props, "str_obj", text="       Lattice Strength")
+        layout.prop(props, "str_obj", text="       Simple Lattice Strength")
    
-    layout.separator()
+        layout.separator()
+
+def object_mesh_menu(self, context):
+    layout = self.layout
+    
+    show_apply_op = op_LatticeApply.Op_LatticeApplyOperator.poll(context)
+    show_remove_op = op_LatticeRemove.Op_LatticeRemoveOperator.poll(context)
+    show_create_op = op_LatticeCreate.Op_LatticeCreateOperator.poll(context)
+    do_show = show_apply_op or show_create_op
+
+    if do_show and type(self in append_menus):
+        layout.separator()   
+
+    if show_apply_op:
+        layout.operator("object.op_lattice_apply")
+        
+    if show_remove_op:
+        layout.operator("object.op_lattice_remove")
+    
+    if show_create_op and not show_apply_op:
+        layout.operator("object.op_lattice_create")
+
+#    if (context.active_object is not None) and (context.active_object.type == 'LATTICE') and ("SimpleLattice" in context.active_object.name):        
+#        props  = context.scene.MODIFIERSTRENGTH_PG_main
+#        layout.prop(props, "str_obj", text="       Simple Lattice Strength")
 
 def register():    
     for menu in prepend_menus:
         menu.prepend(context_menu)
 
-#    for menu in append_menus:
-#        menu.append(context_menu)
+    for menu in append_menus:
+        menu.append(object_mesh_menu)
 
     for c in classes:
         bpy.utils.register_class(c)
@@ -197,11 +224,17 @@ def register():
     bpy.types.Scene.RESOLUTIONUVW_PG_main = bpy.props.PointerProperty(type = RESOLUTIONUVW_PG_main)
 
 def unregister():
-    menus = prepend_menus
-    #menus.extend(append_menus)
+#    menus = prepend_menus
+#    menus.extend(append_menus)
 
-    for menu in menus:
+#    for menu in menus:
+#        menu.remove(context_menu)
+
+    for menu in prepend_menus:
         menu.remove(context_menu)
+
+    for menu in append_menus:
+        menu.remove(object_mesh_menu)
 
     for c in classes:
         bpy.utils.unregister_class(c)

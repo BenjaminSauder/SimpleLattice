@@ -56,3 +56,17 @@ https://user-images.githubusercontent.com/87300864/130314393-aa7842e3-978c-4d40-
 ## Update 0.1.4
 1. Fix for "Flat" surfaces (was impossible to manipulate lattice points)
 2. Fix for Grease Pencil objects (can create lattice for object, but not for gpencil selection points)
+
+
+## Update 0.1.5
+1. Minor UI changes for search operator
+
+![Search_in_Object_Mode](https://user-images.githubusercontent.com/87300864/210093381-b38bd70c-69db-45cd-accf-b8fb5c9b0bd4.png)
+![Search_in_Edit_Mode](https://user-images.githubusercontent.com/87300864/210093394-e7c943f7-99aa-441a-81d9-64f50f63eb44.png)
+
+2. Added menu entry to Object and Mesh
+
+![Menu_Object](https://user-images.githubusercontent.com/87300864/210093566-7f73b3f5-13cd-466e-893c-37ca9155b806.png)
+![Menu_Mesh](https://user-images.githubusercontent.com/87300864/210093573-fa226c2c-81a5-489f-ac4a-fc1042ab03c7.png)
+
+3. Fix for instanced object/s. Now, before applying the lattice, it makes a single user and then applies the lattice.

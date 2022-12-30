@@ -1,3 +1,5 @@
+#Version 0.1.5
+
 import bpy
 
 from . import util
@@ -5,7 +7,7 @@ from . import util
 
 class Op_LatticeApplyOperator(bpy.types.Operator):
     bl_idname = "object.op_lattice_apply"
-    bl_label = "Apply Lattice"
+    bl_label = "Simple Lattice Apply"
     bl_description = "Applies the lattice to all objects whose FFD modifiers are targeting it"
     bl_space_type = "VIEW_3D"
     bl_region_type = "TOOLS"
@@ -74,23 +76,35 @@ class Op_LatticeApplyOperator(bpy.types.Operator):
                                     self.report({'INFO'}, 'Applied modifier was not first, result may not be as expected')
                                 
                                 vertex_group = self.kill_lattice_gpencil_modifer(context, modifier, lattice)
+                                ''' NOT IMPLEMENTED IN API YET
                                 if vertex_group:
                                     vertex_groups.append(vertex_group)
 
                                     # Clear any selection
-#                                    for v in obj.data.points:
-#                                        v.select = False
-#                                    # Get verts in vertex group
-#                                    verts = [v for v in obj.data.points if obj.vertex_groups[vertex_group].index in [i.group for i in v.groups]]
-#                                    # Select verts in vertex group
-#                                    for v in verts:
-#                                        v.select = True
+                                    for layer in obj.data.layers:
+                                        for frame in layer.frames:
+                                            for stroke in frame.strokes:
+                                                for point in stroke.points:
+                                                    point.select = False
+
+                                    # Get points in vertex group
+                                    all_points = []
+                                    for layer in obj.data.layers:
+                                        for frame in layer.frames:
+                                            for stroke in frame.strokes:
+                                                for point in stroke.points:
+                                                    all_points.append(point)
+                                    points = [v for v in all_points if obj.vertex_groups[vertex_group].index in [i.group for i in v.groups]]
+                                    # Select points in vertex group
+                                    for point in points:
+                                        point.select = True
                 
                                     # if apply with vertex groups 
                                     # then select all objects and switch to EDIT mode
                                     obj.select_set(True)
                                     bpy.ops.object.editmode_toggle()
                                     bpy.ops.mesh.select_mode(type="VERT")
+                                '''
 
                                 if not vertex_group:
                                     # if apply without vertex groups 
@@ -171,11 +185,16 @@ class Op_LatticeApplyOperator(bpy.types.Operator):
                 bpy.ops.object.editmode_toggle()
 
             try:
-#                bpy.ops.object.modifier_apply(modifier=modifier.name)
                 bpy.ops.object.gpencil_modifier_apply(modifier=modifier.name)
-            except:                
+            except:
                 self.report({'WARNING'}, 'Modifier applied to multi-user data. Creating single-user and applying.')
-                bpy.ops.object.gpencil_modifier_apply(modifier=modifier.name, single_user=True)
+                #all this for only one unimplemented yet single_user for bpy.ops.object.gpencil_modifier_apply(modifier=modifier.name, single_user=True)
+                bpy.context.view_layer.objects.active.name = modifier.name
+                bpy.context.view_layer.objects.active.select_set(True)
+                bpy.ops.object.make_single_user(object=True, obdata=True, material=False, animation=False, obdata_animation=False)
+                bpy.ops.object.gpencil_modifier_apply(modifier=modifier.name)
+                #=======================================================================================================================================
+                #bpy.ops.object.gpencil_modifier_apply(modifier=modifier.name, single_user=True)
                 
         else:
             bpy.ops.object.gpencil_modifier_remove(modifier=modifier.name)

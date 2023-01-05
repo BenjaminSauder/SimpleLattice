@@ -25,7 +25,7 @@ class Op_LatticeApplyOperator(bpy.types.Operator):
             if obj.type in util.allowed_object_types:
                 vertex_groups.clear()                
       
-                if obj.type == "MESH":
+                if obj.type == "MESH" or obj.type == "CURVE" or obj.type == "SURFACE":
                     for modifier in obj.modifiers:   
                         if modifier.type == 'LATTICE' and "SimpleLattice" in modifier.name:
                             if modifier.object == lattice:
@@ -110,6 +110,19 @@ class Op_LatticeApplyOperator(bpy.types.Operator):
                                     # if apply without vertex groups 
                                     # then select all objects and stay in OBJECT mode
                                     obj.select_set(True)
+
+                if obj.type == "FONT":
+                    for modifier in obj.modifiers:   
+                        if modifier.type == 'LATTICE' and "SimpleLattice" in modifier.name:
+                            if modifier.object == lattice:
+                                # checking for lattice on top of the modifiers stack (for any reason)
+                                # https://blender.stackexchange.com/questions/233357/how-to-get-modifier-position
+                                if obj.modifiers[0].type == "LATTICE" and obj.modifiers[0].object == lattice:
+                                    self.report({'INFO'}, 'Modifier applied')
+                                else:
+                                    self.report({'INFO'}, 'Applied modifier was not first, result may not be as expected')
+                                
+                                vertex_group = self.kill_lattice_font_modifer(context, modifier, lattice)
                 
                 self.kill_vertex_groups(obj, vertex_groups)
                 
@@ -198,6 +211,35 @@ class Op_LatticeApplyOperator(bpy.types.Operator):
                 
         else:
             bpy.ops.object.gpencil_modifier_remove(modifier=modifier.name)
+
+        return vertex_group
+
+    def kill_lattice_font_modifer(self, context, modifier, target):
+        vertex_group = ""
+
+        if modifier.type != "LATTICE" or modifier.object != target:
+            return vertex_group
+
+        if context.active_object != modifier.id_data:
+            self.set_active(context, modifier.id_data)
+
+        if modifier.vertex_group != None:
+            vertex_group = modifier.vertex_group
+
+        if modifier.show_viewport:
+
+            if modifier.id_data.mode != 'OBJECT':
+                bpy.ops.object.editmode_toggle()
+
+            self.report({'WARNING'}, "Can't apply lattice for FONT object. Converting to MESH and applying.")
+            #all this for only one unimplemented yet single_user for bpy.ops.object.gpencil_modifier_apply(modifier=modifier.name, single_user=True)
+            bpy.context.view_layer.objects.active.name = modifier.name
+            bpy.context.view_layer.objects.active.select_set(True)
+            bpy.ops.object.convert(target='MESH')
+            bpy.ops.object.modifier_apply(modifier=modifier.name)
+                
+        else:
+            bpy.ops.object.modifier_remove(modifier=modifier.name)
 
         return vertex_group
 

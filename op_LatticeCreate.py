@@ -434,7 +434,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
     def add_ffd_modifier(self, objects, lattice, group_mapping):
         for obj in objects:
-            if obj.type == "MESH":
+            if obj.type == "MESH" or obj.type == "CURVE" or obj.type == "SURFACE" or obj.type == "FONT":
                 ffd = obj.modifiers.new("SimpleLattice", "LATTICE")
             
                 # good to see modified vertices if add more than one Lattice to the mesh/es

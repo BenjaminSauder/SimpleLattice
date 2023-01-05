@@ -25,7 +25,7 @@ class Op_LatticeRemoveOperator(bpy.types.Operator):
             if obj.type in util.allowed_object_types:
                 vertex_groups.clear()
 
-                if obj.type == "MESH":
+                if obj.type == "MESH" or obj.type == "CURVE" or obj.type == "SURFACE" or obj.type == "FONT":
                     for modifier in obj.modifiers:
                         if modifier.type == 'LATTICE' and "SimpleLattice" in modifier.name:
                             if modifier.object == lattice:

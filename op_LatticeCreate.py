@@ -299,7 +299,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             obj.select_set(True)
             object_origin = obj.matrix_world.to_4x4()
             
-            if self.orientation == 'CURSOR':                
+            if self.orientation == 'CURSOR' and obj.type != "FONT":                
                 # align origin to cursor position & rotation
                 bpy.context.scene.tool_settings.use_transform_data_origin = True
                 bpy.ops.object.origin_set(type='ORIGIN_CURSOR', center='MEDIAN')
@@ -309,7 +309,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
                                             use_proportional_projected=False)
                 bpy.context.scene.tool_settings.use_transform_data_origin = False
                 
-            if self.orientation == 'GLOBAL':
+            if self.orientation == 'GLOBAL' and obj.type != "FONT":
                 # apply only rotation to proper bbox for GLOBAL
                 bpy.ops.object.transform_apply(location=False, rotation=True, scale=False, properties=False)
                 
@@ -319,7 +319,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             bbox_world_coords.extend(coords)
             
             # restoring original objects origin
-            if self.orientation == 'CURSOR' or self.orientation == 'GLOBAL':
+            if self.orientation == 'CURSOR' or self.orientation == 'GLOBAL' and obj.type != "FONT":
                 # align cursor to the original object origin 
                 bpy.context.scene.cursor.matrix = object_origin
                 # align origin to cursor position & rotation

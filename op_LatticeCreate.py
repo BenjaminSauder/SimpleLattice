@@ -288,13 +288,51 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
         return worldspace_verts, vert_mapping
 
-    def get_coords_from_objects(self, objects):
+    def get_coords_from_objects(self, objects):       
         bbox_world_coords = []
+        
+        cursor_original = bpy.context.scene.cursor.matrix
+        
         for obj in objects:
+            bpy.ops.object.select_all(action='DESELECT')
+            bpy.context.view_layer.objects.active = obj
+            obj.select_set(True)
+            object_origin = obj.matrix_world.to_4x4()
+            
+            if self.orientation == 'CURSOR':                
+                # align origin to cursor position & rotation
+                bpy.context.scene.tool_settings.use_transform_data_origin = True
+                bpy.ops.object.origin_set(type='ORIGIN_CURSOR', center='MEDIAN')
+                bpy.ops.transform.transform(mode='ALIGN', value=(0, 0, 0, 0), orient_type='CURSOR', mirror=True,
+                                            use_proportional_edit=False, proportional_edit_falloff='SMOOTH',
+                                            proportional_size=1, use_proportional_connected=False,
+                                            use_proportional_projected=False)
+                bpy.context.scene.tool_settings.use_transform_data_origin = False
+                
+            if self.orientation == 'GLOBAL':
+                # apply only rotation to proper bbox for GLOBAL
+                bpy.ops.object.transform_apply(location=False, rotation=True, scale=False, properties=False)
+                
             coords = obj.bound_box[:]
             coords = [(obj.matrix_world @ Vector(p[:])).to_tuple()
                       for p in coords]
             bbox_world_coords.extend(coords)
+            
+            # restoring original objects origin
+            if self.orientation == 'CURSOR' or self.orientation == 'GLOBAL':
+                # align cursor to the original object origin 
+                bpy.context.scene.cursor.matrix = object_origin
+                # align origin to cursor position & rotation
+                bpy.context.scene.tool_settings.use_transform_data_origin = True
+                bpy.ops.object.origin_set(type='ORIGIN_CURSOR', center='MEDIAN')
+                bpy.ops.transform.transform(mode='ALIGN', value=(0, 0, 0, 0), orient_type='CURSOR', mirror=True,
+                                            use_proportional_edit=False, proportional_edit_falloff='SMOOTH',
+                                            proportional_size=1, use_proportional_connected=False,
+                                            use_proportional_projected=False)
+                bpy.context.scene.tool_settings.use_transform_data_origin = False
+            
+            # restoring original cursor position & rotation
+            bpy.context.scene.cursor.matrix = cursor_original
 
         return bbox_world_coords
 

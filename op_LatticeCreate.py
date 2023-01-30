@@ -125,7 +125,8 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
     @classmethod
     def poll(self, context):
-        if (context.active_object.type in util.allowed_object_types and
+        if (context.active_object is not None and 
+                context.active_object.type in util.allowed_object_types and
                 context.active_object.mode == 'EDIT'):
             return True
 

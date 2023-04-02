@@ -53,10 +53,13 @@ https://user-images.githubusercontent.com/87300864/130314393-aa7842e3-978c-4d40-
 2. Added Addon preference for "Ignore Modifiers".
 ![update 0 1 3 prefs](https://user-images.githubusercontent.com/87300864/179476954-3f40aa49-9e0b-40e0-ab50-7fe92b8af7c5.png)
 
+------------------------------------------------------------------------------------------------------
+
 ## Update 0.1.4
 1. Fix for "Flat" surfaces (was impossible to manipulate lattice points)
 2. Fix for Grease Pencil objects (can create lattice for object, but not for gpencil selection points)
 
+------------------------------------------------------------------------------------------------------
 
 ## Update 0.1.5
 1. Minor UI changes for search operator
@@ -71,6 +74,7 @@ https://user-images.githubusercontent.com/87300864/130314393-aa7842e3-978c-4d40-
 
 3. Fix for instanced object/s. Now, before applying the lattice, it makes a single user and then applies the lattice.
 
+------------------------------------------------------------------------------------------------------
 
 ## Update 0.1.6
 1. More accurate bbox calculation for MESH objects if object have custom rotation

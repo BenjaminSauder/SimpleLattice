@@ -18,7 +18,7 @@ from bpy.types import PropertyGroup
 bl_info = {
     "name" : "SimpleLattice",
     "author" : "benjamin.sauder, Eugene Dudavkin",
-    "version": (0, 1, 5),
+    "version": (0, 1, 6),
     "blender" : (2, 93, 0),
     "location": "View3D",
     "description" : "A tool to simplify the workflow with lattice objects.",
@@ -169,7 +169,9 @@ def context_menu(self, context):
 
     layout.separator()
    
-    if (context.active_object is not None) and (context.active_object.type == 'LATTICE') and ("SimpleLattice" in context.active_object.name) and (context.active_object.mode == 'EDIT'):
+    if (context.active_object is not None) and (context.active_object.type == 'LATTICE') \
+                                           and ("SimpleLattice" in context.active_object.name) \
+                                           and (context.active_object.mode == 'EDIT'):
         layout.label(text="Simple Lattice Resolution:")
         col = layout.column()
         sub = col.column(align=True)
@@ -180,7 +182,9 @@ def context_menu(self, context):
         
         layout.separator()
 
-    if (context.active_object is not None) and (context.active_object.type == 'LATTICE') and ("SimpleLattice" in context.active_object.name):        
+    if (context.active_object is not None) and (context.active_object.type == 'LATTICE') \
+                                           and ("SimpleLattice" in context.active_object.name) \
+                                           and (context.active_object.mode == 'EDIT'):
         props  = context.scene.MODIFIERSTRENGTH_PG_main
         layout.prop(props, "str_obj", text="       Simple Lattice Strength")
    
@@ -206,7 +210,8 @@ def object_mesh_menu(self, context):
     if show_create_op and not show_apply_op:
         layout.operator("object.op_lattice_create")
 
-#    if (context.active_object is not None) and (context.active_object.type == 'LATTICE') and ("SimpleLattice" in context.active_object.name):        
+#    if (context.active_object is not None) and (context.active_object.type == 'LATTICE') \
+#                                           and ("SimpleLattice" in context.active_object.name):        
 #        props  = context.scene.MODIFIERSTRENGTH_PG_main
 #        layout.prop(props, "str_obj", text="       Simple Lattice Strength")
 

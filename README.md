@@ -70,3 +70,13 @@ https://user-images.githubusercontent.com/87300864/130314393-aa7842e3-978c-4d40-
 ![Menu_Mesh](https://user-images.githubusercontent.com/87300864/210093573-fa226c2c-81a5-489f-ac4a-fc1042ab03c7.png)
 
 3. Fix for instanced object/s. Now, before applying the lattice, it makes a single user and then applies the lattice.
+
+
+## Update 0.1.6
+1. More accurate bbox calculation for MESH objects if object have custom rotation
+![Before_After_0_1_6](https://user-images.githubusercontent.com/87300864/229338682-d7e29066-8159-46bc-8be6-df34152bb195.png)
+
+2. New feature to tweak angles for created lattice object
+![Tweak_Angles_0_1_6](https://user-images.githubusercontent.com/87300864/229339007-48fbc619-454b-4c70-b699-8a2dfb524c95.png)
+
+https://user-images.githubusercontent.com/87300864/229339025-baf61493-59dc-4dc4-878e-4fc9bcb01a9e.mp4

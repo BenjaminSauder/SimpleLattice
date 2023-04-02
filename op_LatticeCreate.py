@@ -1,7 +1,8 @@
-#Version 0.1.5
+#Version 0.1.6
 
 import bpy
-from mathutils import *
+#from mathutils import *
+from mathutils import Vector, Matrix, Quaternion, Euler
 
 from . import util
 
@@ -51,7 +52,11 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         default='NORMAL'
     )
 
-    ignore_mods: bpy.props.BoolProperty (name="Ignore Modifiers", default = False, description="Ignore Modifiers for calculation BBOX for lattice")
+    ignore_mods: bpy.props.BoolProperty (
+        name="Ignore Modifiers", 
+        default = False, 
+        description="Ignore Modifiers for calculation BBOX for lattice"
+    )
     
     modifier_position: bpy.props.EnumProperty (
         name="Modifier", 
@@ -92,6 +97,40 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         soft_max=2.0
     )
 
+    tweak_angles: bpy.props.BoolProperty(
+        name="Tweak Angles",
+        description="Tweak created lattice angles",
+        default=False,
+        options={'SKIP_SAVE'}
+    )
+    
+    rot_x: bpy.props.FloatProperty(
+        name="X", 
+        subtype='ANGLE',
+        default=0.0,
+        step=100.0,
+        precision=4,
+        options={'SKIP_SAVE'}
+    )
+
+    rot_y: bpy.props.FloatProperty(
+        name="Y", 
+        subtype='ANGLE',
+        default=0.0,
+        step=100.0,
+        precision=4,
+        options={'SKIP_SAVE'}
+    )
+
+    rot_z: bpy.props.FloatProperty(
+        name="Z", 
+        subtype='ANGLE',
+        default=0.0,
+        step=100.0,
+        precision=4,
+        options={'SKIP_SAVE'}
+    )
+
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = True
@@ -116,12 +155,23 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         sub2.prop(self, "resolution_w", text="W")
 
         col.separator()
-        sub = col.row()        
+        sub = col.row()
         sub.prop(self, "interpolation")
         
         col.separator()
-        sub = col.row()  
+        sub = col.row()
         sub.prop(self, "scale")
+        
+        col.separator()
+        sub = col.row()
+        sub.prop(self, "tweak_angles")
+        sub = col.row()
+        if self.tweak_angles:
+            sub2 = sub.box().column(align=True)
+            #sub2.enabled = False
+            sub2.prop(self, "rot_x", text="Rotation X")
+            sub2.prop(self, "rot_y")
+            sub2.prop(self, "rot_z")
 
     @classmethod
     def poll(self, context):
@@ -173,7 +223,8 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         if len(objects) == 0:
             objects.append(context.active_object)
 
-        self.vertex_mode = all_objecst_are_meshes and objects[0].mode == 'EDIT'
+        self.vertex_mode = all_objecst_are_meshes and objects[0].mode == 'EDIT' 
+#        or objects[0].mode == 'EDIT_GPENCIL'
 
         if len(objects) > 0:        
             #self.mapping = None
@@ -248,13 +299,10 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         vert_mapping = {}
 
         for obj in objects:
-            bpy.ops.object.editmode_toggle()          
-            #obj.select_set(False)
+            vert_indices = []             
 
-            vert_indices = []
-            
             if obj.type == "MESH":
-                print("MESH coords")
+                bpy.ops.object.editmode_toggle()  
                 vertices = obj.data.vertices
                 
                 for vert in vertices:
@@ -263,6 +311,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
                         vert_indices.append(index)
                         worldspace_verts.append(obj.matrix_world @ vert.co)
 
+            #==================================
             '''                        
             https://blender.stackexchange.com/questions/155844/how-can-i-calculate-global-coordinates-for-gpencilstrokepoint-in-blender-2-8-and
             
@@ -270,8 +319,6 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             https://blender.stackexchange.com/questions/282126/create-vertex-group-for-selected-points-in-grease-pencil-object
             '''
             if obj.type == "GPENCIL":
-                print("GPENCIL coords")
-                #vertices = obj.data.points
                 vertices = []
                 for layer in obj.data.layers:
                     for frame in layer.frames:
@@ -281,43 +328,56 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
                 for i, vert in enumerate(vertices):
                     if vert.select == True:
-                        vert_indices.append(i)
+                        vert_indices.append(i)                        
             #==================================
 
             vert_mapping[obj.name] = vert_indices
 
         return worldspace_verts, vert_mapping
 
-    def get_coords_from_objects(self, objects):       
-        bbox_world_coords = []
+    def get_coords_from_objects(self, objects):
+        # exeption if create lattice for GPENCIL in edit mode
+        if objects[0].mode == 'EDIT_GPENCIL':
+            self.report({'WARNING'}, 'Lattice for GPENCIL points not supported yet in Blender API. Switching to object mode.')
+            bpy.ops.object.mode_set(mode='OBJECT')
         
-        for obj in objects:                
-            coords = obj.bound_box[:]
-            coords = [(obj.matrix_world @ Vector(p[:])).to_tuple()
-                      for p in coords]
-            bbox_world_coords.extend(coords)
+        bbox_world_coords = []
+        for obj in objects:
+            if obj.type == 'MESH':
+                vertices = obj.data.vertices
+                for vert in vertices:
+                    bbox_world_coords.append(obj.matrix_world @ vert.co)
+            else:
+                coords = obj.bound_box[:]
+                coords = [(obj.matrix_world @ Vector(p[:])).to_tuple() for p in coords]
+                bbox_world_coords.extend(coords)               
 
         return bbox_world_coords
 
-    def update_lattice_from_bbox(self, context, lattice, bbox_world_coords, matrix_world):                           
+    def update_lattice_from_bbox(self, context, lattice, bbox_world_coords, matrix_world):
         if self.orientation == 'GLOBAL':
             rotation = Matrix.Identity(4)
-            bbox = util.bounds(bbox_world_coords)
+#            bbox = util.bounds(bbox_world_coords)
             bpy.context.scene.transform_orientation_slots[0].type = 'GLOBAL'
             
         elif self.orientation == 'NORMAL':
-            orig_transform = bpy.context.scene.transform_orientation_slots[0].type
-            bpy.context.scene.transform_orientation_slots[0].type = 'SimpleLattice_Orientation'
-            co = bpy.context.scene.transform_orientation_slots[0].custom_orientation
-            bpy.data.scenes[0].transform_orientation_slots[0].type = orig_transform
+            try:                
+                orig_transform = bpy.context.scene.transform_orientation_slots[0].type
+                bpy.context.scene.transform_orientation_slots[0].type = 'SimpleLattice_Orientation'
+                co = bpy.context.scene.transform_orientation_slots[0].custom_orientation
+    #            bpy.ops.transform.delete_orientation()
+                bpy.data.scenes[0].transform_orientation_slots[0].type = orig_transform
             
-            rotation = co.matrix.to_quaternion().to_matrix().to_4x4()            
-            bbox = util.bounds(bbox_world_coords, rotation.inverted())                        
-            bpy.context.scene.transform_orientation_slots[0].type = 'LOCAL'
+                rotation = co.matrix.to_quaternion().to_matrix().to_4x4()
+            except:
+                rotation = matrix_world.to_quaternion().to_matrix().to_4x4()
+            
+#            bbox = util.bounds(bbox_world_coords, rotation.inverted())
+            bpy.context.scene.transform_orientation_slots[0].type = 'LOCAL'            
 
         elif self.orientation == 'LOCAL':
             rotation = matrix_world.to_quaternion().to_matrix().to_4x4()
-            bbox = util.bounds(bbox_world_coords, rotation.inverted())
+#            bbox = util.bounds(bbox_world_coords, rotation.inverted())
             bpy.context.scene.transform_orientation_slots[0].type = 'LOCAL'
 
         elif self.orientation == 'CURSOR':
@@ -331,15 +391,34 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             else:
                 rotation = context.scene.cursor.rotation_euler.to_matrix().to_4x4()
     
-            bbox = util.bounds(bbox_world_coords, rotation.inverted())
+#            bbox = util.bounds(bbox_world_coords, rotation.inverted())
             bpy.context.scene.transform_orientation_slots[0].type = 'CURSOR'
+
+        # new rot angles
+        if not self.tweak_angles:
+            rot_x = 0
+            rot_y = 0
+            rot_z = 0
+
+        if self.tweak_angles:
+            rot_x = self.rot_x
+            rot_y = self.rot_y
+            rot_z = self.rot_z
+        
+        rot_new = Euler((rot_x, rot_y, rot_z)).to_matrix()
+        
+        rotation = rotation @ rot_new.to_4x4()
+        bbox = util.bounds(bbox_world_coords, rotation.inverted())
             
         # removing custom orientation
-        orig_transform = bpy.context.scene.transform_orientation_slots[0].type
-        bpy.context.scene.transform_orientation_slots[0].type = 'SimpleLattice_Orientation'
-        bpy.ops.transform.delete_orientation()
-        bpy.data.scenes[0].transform_orientation_slots[0].type = orig_transform
+        try:
+            orig_transform = bpy.context.scene.transform_orientation_slots[0].type
+            bpy.context.scene.transform_orientation_slots[0].type = 'SimpleLattice_Orientation'
+            bpy.ops.transform.delete_orientation()
+            bpy.data.scenes[0].transform_orientation_slots[0].type = orig_transform
+        except: pass
         
+        # calc lattice center
         bound_min = Vector((bbox.x.min, bbox.y.min, bbox.z.min))
         bound_max = Vector((bbox.x.max, bbox.y.max, bbox.z.max))
         offset = (bound_min + bound_max) * 0.5
@@ -412,11 +491,11 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             # https://blender.stackexchange.com/questions/223134/adding-a-modifier-to-the-top-of-the-stack-of-multiple-objects-without-overwritin
 #            if self.on_top == True:
 #                obj.select_set(True)
-#                bpy.context.view_layer.objects.active = obj                
-#                bpy.ops.object.modifier_move_to_index(modifier=ffd.name, index=0)            
+#                bpy.context.view_layer.objects.active = obj
+#                bpy.ops.object.modifier_move_to_index(modifier=ffd.name, index=0)
             if self.modifier_position == 'on_top':
                 obj.select_set(True)
-                bpy.context.view_layer.objects.active = obj                
+                bpy.context.view_layer.objects.active = obj
                 bpy.ops.object.modifier_move_to_index(modifier=ffd.name, index=0)
             if self.modifier_position == 'bottom':
                 pass
@@ -476,7 +555,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         for obj in objects:
 
             mode = obj.mode
-            if obj.mode == "EDIT":
+            if obj.mode == 'EDIT':
                 bpy.ops.object.editmode_toggle()
 
             #group_index = 0
@@ -486,14 +565,14 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
                     #group_index = max(group_index, index)
 
             #group = obj.vertex_groups.new(name=f"SimpleLattice.{group_index}")
-            if obj.type == "MESH":
+            if obj.type == 'MESH':
                 #print("creating group for MESH")
                 group = obj.vertex_groups.new(name=f"SimpleLattice")
 
                 group.add(vert_mapping[obj.name], 1.0, "REPLACE")
                 group_mapping[obj.name] = group.name
             
-            if obj.type == "GPENCIL": # <<==================== NOT IMPLEMENTING IN API YET
+            if obj.type == 'GPENCIL': # <<==================== NOT IMPLEMENTING IN API YET
                 #print("creating group for GP")
                 group = obj.vertex_groups.new(name=f"SimpleLattice")
 
@@ -506,29 +585,31 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         return group_mapping
         
     def for_edit_mode(self, context):
-        try:
-            bpy.ops.transform.create_orientation(name="SimpleLattice_Orientation", use=False, overwrite=True)
-        except:
-            bpy.ops.object.mode_set(mode='OBJECT')
-            bpy.ops.transform.create_orientation(name="SimpleLattice_Orientation", use=False, overwrite=True)
-
         active_object = context.view_layer.objects.active
-        if active_object.mode == "EDIT":            
+#        try:
+#            bpy.ops.transform.create_orientation(name="SimpleLattice_Orientation", use=False, overwrite=True)
+#        except:
+        # EXPERIMENTAL Solution for Normal orientation
+        if active_object.type == 'MESH':
+            if bpy.context.mode == 'EDIT_MESH':
+    #            bpy.ops.object.mode_set(mode='OBJECT')
+                bpy.ops.transform.create_orientation(name="SimpleLattice_Orientation", use=False, overwrite=True)
+            if bpy.context.mode == 'OBJECT':
+                bpy.ops.object.mode_set(mode='EDIT')
+                bpy.ops.mesh.select_mode(type="VERT")
+                bpy.ops.mesh.select_all(action='SELECT')
+                bpy.ops.mesh.duplicate()
+                bpy.ops.mesh.edge_face_add()
+                bpy.ops.transform.create_orientation(name="SimpleLattice_Orientation", use=False, overwrite=True)
+                bpy.ops.mesh.delete(type='VERT')
+                bpy.ops.object.mode_set(mode='OBJECT')
+        
+        if active_object.mode == 'EDIT':
             objects_originals = context.selected_objects
 
             bpy.ops.object.mode_set(mode = 'OBJECT')
             bpy.ops.object.empty_add()
-
-#            bpy.ops.object.duplicate()
-
-            objects_created = context.selected_objects
-
-            # removing objects with its data
-            # https://blender.stackexchange.com/questions/233204/how-can-i-purge-recently-deleted-objects
-            for obj in objects_created:
-                purge_data = [o.data for o in context.selected_objects if o.data]
-                bpy.data.batch_remove(context.selected_objects)
-                bpy.data.batch_remove([o for o in purge_data if not o.users])
+            bpy.ops.object.delete(use_global=False, confirm=False)
                 
             # selecting original objects with active
             for obj in objects_originals:

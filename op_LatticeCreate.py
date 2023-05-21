@@ -38,8 +38,8 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
                          ('CURSOR', 'Cursor', ''),
                          ('NORMAL', 'Normal', ''))
                          
-    position_types = (('on_top','On Top',''),
-                      ('bottom','Bottom',''))
+#    position_types = (('on_top','On Top',''),
+#                      ('bottom','Bottom',''))
 
     interpolation_types = (('KEY_LINEAR', 'Linear', ''),
                            ('KEY_CARDINAL', 'Cardinal', ''),
@@ -55,15 +55,15 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
     ignore_mods: bpy.props.BoolProperty (
         name="Ignore Modifiers", 
         default = False, 
-        description="Ignore Modifiers for calculation BBOX for lattice"
+        description="Ignore Modifiers to calculate BBOX for lattice"
     )
     
-    modifier_position: bpy.props.EnumProperty (
-        name="Modifier", 
-        items=position_types,
-        default="bottom", 
-        description="Move modifier on top or bottom in the stack"
-    )
+#    modifier_position: bpy.props.EnumProperty (
+#        name="Modifier", 
+#        items=position_types,
+#        default="bottom", 
+#        description="Move modifier on top or bottom in the stack"
+#    )
 
     resolution_u: bpy.props.IntProperty(
         name="u", 
@@ -139,9 +139,9 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         sub = col.row()
         sub.prop(self, "orientation")
         
-        col.separator()        
-        sub = col.row()
-        sub.prop(self, "modifier_position", expand=True)
+#        col.separator()        
+#        sub = col.row()
+#        sub.prop(self, "modifier_position", expand=True)
         
         col.separator()
         sub = col.row()
@@ -198,7 +198,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             prefs = bpy.context.preferences.addons[__package__].preferences
 
             self.orientation = prefs.default_orientation
-            self.modifier_position = prefs.default_position
+#            self.modifier_position = prefs.default_position
             self.ignore_mods = prefs.default_ignore_mods
             self.resolution_u = prefs.default_resolution_u
             self.resolution_v = prefs.default_resolution_v
@@ -235,16 +235,16 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             self.cleanup(objects)
             
             #---------
-            modifiers_not_visible = []
-            for obj in objects:        
-                for modifier in obj.modifiers:
-                    if modifier.show_viewport == False:
-                        modifiers_not_visible.append(modifier)
-                        print("Modifiers hidden = ", modifier.name)
-                    if self.ignore_mods == True:
-                        modifier.show_viewport = False 
-                if context.mode == 'OBJECT':
-                    context.view_layer.update()
+#            modifiers_not_visible = []
+#            for obj in objects:        
+#                for modifier in obj.modifiers:
+#                    if modifier.show_viewport == False:
+#                        modifiers_not_visible.append(modifier)
+#                        print("Modifiers hidden = ", modifier.name)
+#                    if self.ignore_mods == True:
+#                        modifier.show_viewport = False 
+#                if context.mode == 'OBJECT':
+#                    context.view_layer.update()
             #---------
              
             if self.vertex_mode:
@@ -275,11 +275,11 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
             context.view_layer.update()
 
             #---------
-            for obj in objects:
-                for modifier in obj.modifiers:
-                    modifier.show_viewport = True
-                for modifier in modifiers_not_visible:
-                    modifier.show_viewport = False
+#            for obj in objects:
+#                for modifier in obj.modifiers:
+#                    modifier.show_viewport = True
+#                for modifier in modifiers_not_visible:
+#                    modifier.show_viewport = False
             #---------
             
             return {'FINISHED'}
@@ -343,7 +343,7 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
         
         bbox_world_coords = []
         for obj in objects:
-            if obj.type == 'MESH':
+            if obj.type == 'MESH' and self.ignore_mods == True:
                 vertices = obj.data.vertices
                 for vert in vertices:
                     bbox_world_coords.append(obj.matrix_world @ vert.co)
@@ -489,16 +489,12 @@ class Op_LatticeCreateOperator(bpy.types.Operator):
 
             # Move Lattice modifier to the top of modifiers stack (if needed)
             # https://blender.stackexchange.com/questions/223134/adding-a-modifier-to-the-top-of-the-stack-of-multiple-objects-without-overwritin
-#            if self.on_top == True:
+#            if self.modifier_position == 'on_top':
 #                obj.select_set(True)
 #                bpy.context.view_layer.objects.active = obj
 #                bpy.ops.object.modifier_move_to_index(modifier=ffd.name, index=0)
-            if self.modifier_position == 'on_top':
-                obj.select_set(True)
-                bpy.context.view_layer.objects.active = obj
-                bpy.ops.object.modifier_move_to_index(modifier=ffd.name, index=0)
-            if self.modifier_position == 'bottom':
-                pass
+#            if self.modifier_position == 'bottom':
+#                pass
             
             ffd.object = lattice
             if group_mapping != None:

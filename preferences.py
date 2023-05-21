@@ -11,8 +11,8 @@ class SimpleLatticePrefs(bpy.types.AddonPreferences):
                          ('CURSOR', 'Cursor', ''),
                          ('NORMAL', 'Normal', ''))
 
-    position_types = (('on_top','On Top',''),
-                      ('bottom','Bottom',''))
+#    position_types = (('on_top','On Top',''),
+#                      ('bottom','Bottom',''))
     
     interpolation_types = (('KEY_LINEAR', 'Linear', ''),
                            ('KEY_CARDINAL', 'Cardinal', ''),
@@ -25,11 +25,11 @@ class SimpleLatticePrefs(bpy.types.AddonPreferences):
         default='GLOBAL'
     )
 
-    default_position: bpy.props.EnumProperty(
-        name="Default Position", 
-        items=position_types, 
-        default='bottom'
-    )
+#    default_position: bpy.props.EnumProperty(
+#        name="Default Position", 
+#        items=position_types, 
+#        default='bottom'
+#    )
 
     default_ignore_mods: bpy.props.BoolProperty(
         name="Ignore Modifiers", 
@@ -77,9 +77,9 @@ class SimpleLatticePrefs(bpy.types.AddonPreferences):
         sub = col.row()
         sub.prop(self, "default_orientation", expand=True)
         
-        col.separator()        
-        sub = col.row()
-        sub.prop(self, "default_position", expand=True)
+#        col.separator()        
+#        sub = col.row()
+#        sub.prop(self, "default_position", expand=True)
 
         col.separator()        
         sub = col.row()

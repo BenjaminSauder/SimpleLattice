@@ -1,7 +1,6 @@
 #Version 0.1.6
 
 import bpy
-#from mathutils import *
 from mathutils import Vector, Matrix, Quaternion, Euler
 
 from . import util
